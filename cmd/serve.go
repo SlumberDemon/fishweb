@@ -1,0 +1,164 @@
+package cmd
+
+import (
+	"bytes"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/spf13/cobra"
+)
+
+type ServeOptions struct {
+	port     int
+	rootDir  string
+	hostname string
+}
+
+func NewCmdServe() *cobra.Command {
+	opts := &ServeOptions{}
+
+	cmd := &cobra.Command{
+		Use:   "serve",
+		Short: "Start fishweb server",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(opts)
+		},
+	}
+
+	cmd.Flags().IntVarP(&opts.port, "port", "p", 8888, "Port to run the server on")
+	cmd.Flags().StringVarP(&opts.rootDir, "root", "r", "~/fishweb", "Root directory for applications")
+	cmd.Flags().StringVarP(&opts.hostname, "hostname", "H", "localhost", "Hostname to listen on")
+
+	return cmd
+}
+
+func runServe(opts *ServeOptions) error {
+	if strings.HasPrefix(opts.rootDir, "~/") {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %v", err)
+		}
+		opts.rootDir = filepath.Join(home, opts.rootDir[2:])
+	}
+
+	if err := os.MkdirAll(opts.rootDir, 0755); err != nil {
+		return fmt.Errorf("failed to create root directory: %v", err)
+	}
+
+	server := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", opts.hostname, opts.port),
+		Handler: &FishwebHandler{rootDir: opts.rootDir},
+	}
+
+	fmt.Printf("Starting Fishweb server on http://%s:%d\n", opts.hostname, opts.port)
+	return server.ListenAndServe()
+}
+
+type FishwebHandler struct {
+	rootDir string
+}
+
+func (h *FishwebHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	hostParts := strings.Split(r.Host, ":")
+	domains := strings.Split(hostParts[0], ".")
+
+	if len(domains) < 2 {
+		http.Error(w, "Invalid domain. Please use <app-name>.localhost", http.StatusBadRequest)
+		return
+	}
+
+	subDomain := domains[0]
+	appDir := filepath.Join(h.rootDir, subDomain)
+
+	if _, err := os.Stat(appDir); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("Application '%s' not found in %s", subDomain, h.rootDir), http.StatusNotFound)
+		return
+	}
+
+	if _, err := os.Stat(filepath.Join(appDir, "main.py")); os.IsNotExist(err) {
+		http.Error(w, fmt.Sprintf("main.py not found in %s", appDir), http.StatusNotFound)
+		return
+	}
+
+	port, err := startPythonApp(appDir)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to start application: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Wait for the application to be ready
+	if err := waitForApp(port); err != nil {
+		http.Error(w, fmt.Sprintf("Application failed to start: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	target, _ := url.Parse(fmt.Sprintf("http://localhost:%d", port))
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.ServeHTTP(w, r)
+}
+
+func startPythonApp(appDir string) (int, error) {
+	port := getFreePort()
+	if port == 0 {
+		return 0, fmt.Errorf("no free ports available")
+	}
+
+	var stderr bytes.Buffer
+	cmd := exec.Command("uvicorn",
+		"main:app",
+		"--limit-max-requests", "1",
+		"--port", strconv.Itoa(port),
+		"--ws", "none",
+		"--lifespan", "off",
+	)
+	cmd.Dir = appDir
+	cmd.Stderr = &stderr
+
+	if err := cmd.Start(); err != nil {
+		return 0, fmt.Errorf("failed to start uvicorn: %v\nstderr: %s", err, stderr.String())
+	}
+
+	// Start a goroutine to handle process cleanup
+	go func() {
+		cmd.Wait()
+	}()
+
+	return port, nil
+}
+
+func waitForApp(port int) error {
+	endpoint := fmt.Sprintf("http://localhost:%d", port)
+	maxAttempts := 30
+	backoff := 100 * time.Millisecond
+
+	for i := 0; i < maxAttempts; i++ {
+		resp, err := http.Get(endpoint)
+		if err == nil {
+			resp.Body.Close()
+			return nil
+		}
+		time.Sleep(backoff)
+	}
+
+	return fmt.Errorf("application failed to start after %d attempts", maxAttempts)
+}
+
+func getFreePort() int {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return 0
+	}
+	defer listener.Close()
+
+	return listener.Addr().(*net.TCPAddr).Port
+}
