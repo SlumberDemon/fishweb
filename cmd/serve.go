@@ -103,7 +103,8 @@ func (h *FishwebHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	app, err := h.getOrStartApp(subDomain, appDir)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to start application: %v", err), http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		fmt.Printf("Error starting application %s: %v\n", subDomain, err)
 		return
 	}
 
@@ -137,6 +138,12 @@ func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, err
 		"--lifespan", "off",
 		"--timeout-keep-alive", "30",
 	)
+
+	envFile := filepath.Join(appDir, ".env")
+	if _, err := os.Stat(envFile); err == nil {
+		cmd.Args = append(cmd.Args, "--env-file", envFile)
+	}
+
 	cmd.Dir = appDir
 	cmd.Stderr = &stderr
 
@@ -154,7 +161,7 @@ func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, err
 
 	go h.monitorApp(appName, app)
 
-	if err := waitForApp(port); err != nil {
+	if err := waitForAppWithTimeout(port, 30*time.Second); err != nil {
 		cmd.Process.Kill()
 		delete(h.apps, appName)
 		return nil, fmt.Errorf("application failed to start: %v", err)
@@ -170,7 +177,7 @@ func (h *FishwebHandler) monitorApp(appName string, app *AppProcess) {
 	for {
 		select {
 		case <-ticker.C:
-			if time.Since(app.lastUsed) > 30*time.Second {
+			if time.Since(app.lastUsed) > 0 {
 				app.cmd.Process.Kill()
 				delete(h.apps, appName)
 				close(app.shutdown)
@@ -182,12 +189,12 @@ func (h *FishwebHandler) monitorApp(appName string, app *AppProcess) {
 	}
 }
 
-func waitForApp(port int) error {
+func waitForAppWithTimeout(port int, timeout time.Duration) error {
 	endpoint := fmt.Sprintf("http://localhost:%d", port)
-	maxAttempts := 30
 	backoff := 100 * time.Millisecond
 
-	for i := 0; i < maxAttempts; i++ {
+	start := time.Now()
+	for time.Since(start) < timeout {
 		resp, err := http.Get(endpoint)
 		if err == nil {
 			resp.Body.Close()
@@ -196,7 +203,7 @@ func waitForApp(port int) error {
 		time.Sleep(backoff)
 	}
 
-	return fmt.Errorf("application failed to start after %d attempts", maxAttempts)
+	return fmt.Errorf("application failed to start within timeout")
 }
 
 func getFreePort() int {
