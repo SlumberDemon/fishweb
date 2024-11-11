@@ -56,16 +56,27 @@ func runServe(opts *ServeOptions) error {
 	}
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", opts.hostname, opts.port),
-		Handler: &FishwebHandler{rootDir: opts.rootDir},
+		Addr: fmt.Sprintf("%s:%d", opts.hostname, opts.port),
+		Handler: &FishwebHandler{
+			rootDir: opts.rootDir,
+			apps:    make(map[string]*AppProcess),
+		},
 	}
 
 	fmt.Printf("Starting Fishweb server on http://%s:%d\n", opts.hostname, opts.port)
 	return server.ListenAndServe()
 }
 
+type AppProcess struct {
+	cmd      *exec.Cmd
+	port     int
+	lastUsed time.Time
+	shutdown chan struct{}
+}
+
 type FishwebHandler struct {
 	rootDir string
+	apps    map[string]*AppProcess
 }
 
 func (h *FishwebHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -90,50 +101,85 @@ func (h *FishwebHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	port, err := startPythonApp(appDir)
+	app, err := h.getOrStartApp(subDomain, appDir)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to start application: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Wait for the application to be ready
-	if err := waitForApp(port); err != nil {
-		http.Error(w, fmt.Sprintf("Application failed to start: %v", err), http.StatusInternalServerError)
-		return
-	}
+	app.lastUsed = time.Now()
 
-	target, _ := url.Parse(fmt.Sprintf("http://localhost:%d", port))
+	target, _ := url.Parse(fmt.Sprintf("http://localhost:%d", app.port))
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.ServeHTTP(w, r)
 }
 
-func startPythonApp(appDir string) (int, error) {
+func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, error) {
+	if app, exists := h.apps[appName]; exists {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d", app.port))
+		if err == nil {
+			resp.Body.Close()
+			return app, nil
+		}
+		delete(h.apps, appName)
+	}
+
 	port := getFreePort()
 	if port == 0 {
-		return 0, fmt.Errorf("no free ports available")
+		return nil, fmt.Errorf("no free ports available")
 	}
 
 	var stderr bytes.Buffer
 	cmd := exec.Command("uvicorn",
 		"main:app",
-		"--limit-max-requests", "1",
 		"--port", strconv.Itoa(port),
 		"--ws", "none",
 		"--lifespan", "off",
+		"--timeout-keep-alive", "30",
 	)
 	cmd.Dir = appDir
 	cmd.Stderr = &stderr
 
 	if err := cmd.Start(); err != nil {
-		return 0, fmt.Errorf("failed to start uvicorn: %v\nstderr: %s", err, stderr.String())
+		return nil, fmt.Errorf("failed to start uvicorn: %v\nstderr: %s", err, stderr.String())
 	}
 
-	// Start a goroutine to handle process cleanup
-	go func() {
-		cmd.Wait()
-	}()
+	app := &AppProcess{
+		cmd:      cmd,
+		port:     port,
+		lastUsed: time.Now(),
+		shutdown: make(chan struct{}),
+	}
+	h.apps[appName] = app
 
-	return port, nil
+	go h.monitorApp(appName, app)
+
+	if err := waitForApp(port); err != nil {
+		cmd.Process.Kill()
+		delete(h.apps, appName)
+		return nil, fmt.Errorf("application failed to start: %v", err)
+	}
+
+	return app, nil
+}
+
+func (h *FishwebHandler) monitorApp(appName string, app *AppProcess) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if time.Since(app.lastUsed) > 30*time.Second {
+				app.cmd.Process.Kill()
+				delete(h.apps, appName)
+				close(app.shutdown)
+				return
+			}
+		case <-app.shutdown:
+			return
+		}
+	}
 }
 
 func waitForApp(port int) error {
