@@ -23,7 +23,7 @@ Uvicorn **must** either be installed globally or added to an apps `requirements.
 
 > macOS and linux
 
-```
+```shell
 # Clone and change into directory
 git clone https://github.com/slumberdemon/fishweb
 cd fishweb
