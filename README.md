@@ -7,7 +7,9 @@ You can quickly create a new app with `fishweb new [name]` or create a folder in
 As fishweb uses uvicorn any [ASGI framework](https://www.uvicorn.org/#asgi-frameworks) is supported. Apps must have a `main.py` file and the instance must be named `app`.
 They also need a `requirements.txt` file to install libraries. Environment variables should be provided in a `.env` file.
 
-## Cloudlare
+## Cloudflare
+
+Guide soon
 
 ## Prerequisite
 
