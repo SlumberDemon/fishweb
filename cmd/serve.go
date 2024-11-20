@@ -131,7 +131,10 @@ func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, err
 	}
 
 	var stderr bytes.Buffer
-	cmd := exec.Command("uvicorn",
+	cmd := exec.Command("uv",
+		"run",
+		"--with-requirements", "requirements.txt",
+		"uvicorn",
 		"main:app",
 		"--port", strconv.Itoa(port),
 		"--ws", "none",
@@ -148,7 +151,7 @@ func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, err
 	cmd.Stderr = &stderr
 
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start uvicorn: %v\nstderr: %s", err, stderr.String())
+		return nil, fmt.Errorf("failed to start uv: %v\nstderr: %s", err, stderr.String())
 	}
 
 	app := &AppProcess{
