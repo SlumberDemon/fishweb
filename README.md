@@ -38,3 +38,4 @@ sudo cp fishweb /usr/local/bin
 
 ## Issues
 - [ ] Find a way to stop leaving <defunct> processes
+- [ ] Clean up error messages

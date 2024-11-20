@@ -130,8 +130,13 @@ func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, err
 		return nil, fmt.Errorf("no free ports available")
 	}
 
+	uv, err := uvExecutable()
+	if err != nil {
+		return nil, fmt.Errorf("could not find uv executable")
+	}
+
 	var stderr bytes.Buffer
-	cmd := exec.Command("uv",
+	cmd := exec.Command(uv,
 		"run",
 		"--with-requirements", "requirements.txt",
 		"uvicorn",
@@ -217,4 +222,12 @@ func getFreePort() int {
 	defer listener.Close()
 
 	return listener.Addr().(*net.TCPAddr).Port
+}
+
+func uvExecutable() (string, error) {
+	if uvPath, err := exec.LookPath("uv"); err == nil {
+		return uvPath, nil
+	}
+
+	return "", fmt.Errorf("uv not found")
 }
