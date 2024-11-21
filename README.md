@@ -32,7 +32,7 @@ cd fishweb
 go build
 
 # Move to correct location
-sudo cp fishweb /usr/local/bin
+sudo cp fishweb $HOME/.local/bin
 ```
 
 
