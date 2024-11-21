@@ -92,7 +92,7 @@ func (h *FishwebHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	appDir := filepath.Join(h.rootDir, subDomain)
 
 	if _, err := os.Stat(appDir); os.IsNotExist(err) {
-		http.Error(w, fmt.Sprintf("Application '%s' not found in %s", subDomain, h.rootDir), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Application '%s' not found", subDomain), http.StatusNotFound)
 		return
 	}
 
