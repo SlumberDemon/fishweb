@@ -229,5 +229,25 @@ func uvExecutable() (string, error) {
 		return uvPath, nil
 	}
 
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	for _, candidate := range []string{
+		filepath.Join(homedir, ".local", "bin", "uv"),
+		"/usr/local/bin/uv",
+		// add extra paths for homebrew etc to allow none standalone version to be used
+	} {
+		if FileExists(candidate) {
+			return candidate, nil
+		}
+	}
+
 	return "", fmt.Errorf("uv not found")
+}
+
+func FileExists(p string) bool {
+	_, err := os.Stat(p)
+	return err == nil
 }
