@@ -10,7 +10,7 @@ import (
 
 func NewCmdNew() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "new [name]",
+		Use:   "new <name>",
 		Short: "Create new fishweb app",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

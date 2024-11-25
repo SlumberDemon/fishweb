@@ -14,57 +14,52 @@ import (
 	"strings"
 	"time"
 
+	"github.com/slumberdemon/fishweb/utils"
 	"github.com/spf13/cobra"
 )
 
-type ServeOptions struct {
-	port     int
-	rootDir  string
-	hostname string
-}
-
 func NewCmdServe() *cobra.Command {
-	opts := &ServeOptions{}
+	var flags struct {
+		port     int
+		rootDir  string
+		hostname string
+	}
 
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Start fishweb server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runServe(opts)
+			if strings.HasPrefix(flags.rootDir, "~/") {
+				home, err := os.UserHomeDir()
+				if err != nil {
+					return fmt.Errorf("failed to get home directory: %v", err)
+				}
+				flags.rootDir = filepath.Join(home, flags.rootDir[2:])
+			}
+
+			if err := os.MkdirAll(flags.rootDir, 0755); err != nil {
+				return fmt.Errorf("failed to create root directory: %v", err)
+			}
+
+			server := &http.Server{
+				Addr: fmt.Sprintf("%s:%d", flags.hostname, flags.port),
+				Handler: &FishwebHandler{
+					rootDir: flags.rootDir,
+					apps:    make(map[string]*AppProcess),
+				},
+			}
+
+			fmt.Printf("Starting Fishweb server on http://%s:%d\n", flags.hostname, flags.port)
+			return server.ListenAndServe()
 		},
 	}
 
-	cmd.Flags().IntVarP(&opts.port, "port", "p", 8888, "Port to run the server on")
-	cmd.Flags().StringVarP(&opts.rootDir, "root", "r", "~/fishweb", "Root directory for applications")
-	cmd.Flags().StringVarP(&opts.hostname, "hostname", "H", "localhost", "Hostname to listen on")
+	cmd.Flags().IntVarP(&flags.port, "port", "p", 8888, "Port to run the server on")
+	cmd.Flags().StringVarP(&flags.rootDir, "root", "r", "~/fishweb", "Root directory for applications")
+	cmd.Flags().StringVarP(&flags.hostname, "hostname", "H", "localhost", "Hostname to listen on")
 
 	return cmd
-}
-
-func runServe(opts *ServeOptions) error {
-	if strings.HasPrefix(opts.rootDir, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("failed to get home directory: %v", err)
-		}
-		opts.rootDir = filepath.Join(home, opts.rootDir[2:])
-	}
-
-	if err := os.MkdirAll(opts.rootDir, 0755); err != nil {
-		return fmt.Errorf("failed to create root directory: %v", err)
-	}
-
-	server := &http.Server{
-		Addr: fmt.Sprintf("%s:%d", opts.hostname, opts.port),
-		Handler: &FishwebHandler{
-			rootDir: opts.rootDir,
-			apps:    make(map[string]*AppProcess),
-		},
-	}
-
-	fmt.Printf("Starting Fishweb server on http://%s:%d\n", opts.hostname, opts.port)
-	return server.ListenAndServe()
 }
 
 type AppProcess struct {
@@ -239,15 +234,10 @@ func uvExecutable() (string, error) {
 		"/usr/local/bin/uv",
 		// add extra paths for homebrew etc to allow none standalone version to be used
 	} {
-		if FileExists(candidate) {
+		if utils.FileExists(candidate) {
 			return candidate, nil
 		}
 	}
 
 	return "", fmt.Errorf("uv not found")
-}
-
-func FileExists(p string) bool {
-	_, err := os.Stat(p)
-	return err == nil
 }
