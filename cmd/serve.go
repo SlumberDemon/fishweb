@@ -30,22 +30,16 @@ func NewCmdServe() *cobra.Command {
 		Short: "Start fishweb server",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if strings.HasPrefix(flags.rootDir, "~/") {
-				home, err := os.UserHomeDir()
-				if err != nil {
-					return fmt.Errorf("failed to get home directory: %v", err)
-				}
-				flags.rootDir = filepath.Join(home, flags.rootDir[2:])
-			}
+			rootDir := filepath.Join(os.Getenv("HOME"), "fishweb")
 
-			if err := os.MkdirAll(flags.rootDir, 0755); err != nil {
+			if err := os.MkdirAll(rootDir, 0755); err != nil {
 				return fmt.Errorf("failed to create root directory: %v", err)
 			}
 
 			server := &http.Server{
 				Addr: fmt.Sprintf("%s:%d", flags.hostname, flags.port),
 				Handler: &FishwebHandler{
-					rootDir: flags.rootDir,
+					rootDir: rootDir,
 					apps:    make(map[string]*AppProcess),
 				},
 			}
@@ -56,7 +50,6 @@ func NewCmdServe() *cobra.Command {
 	}
 
 	cmd.Flags().IntVarP(&flags.port, "port", "p", 8888, "Port to run the server on")
-	cmd.Flags().StringVarP(&flags.rootDir, "root", "r", "~/fishweb", "Root directory for applications")
 	cmd.Flags().StringVarP(&flags.hostname, "hostname", "H", "localhost", "Hostname to listen on")
 
 	return cmd
@@ -140,6 +133,7 @@ func (h *FishwebHandler) getOrStartApp(appName, appDir string) (*AppProcess, err
 		"--ws", "none",
 		"--lifespan", "off",
 		"--timeout-keep-alive", "30",
+		// "--proxy-headers",
 	)
 
 	envFile := filepath.Join(appDir, ".env")
@@ -232,7 +226,7 @@ func uvExecutable() (string, error) {
 	for _, candidate := range []string{
 		filepath.Join(homedir, ".local", "bin", "uv"),
 		"/usr/local/bin/uv",
-		// add extra paths for homebrew etc to allow none standalone version to be used
+		"/opt/homebrew/bin/uv",
 	} {
 		if utils.FileExists(candidate) {
 			return candidate, nil

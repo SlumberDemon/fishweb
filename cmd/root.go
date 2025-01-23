@@ -5,15 +5,15 @@ import (
 )
 
 func NewCmdRoot() *cobra.Command {
-	cmd := &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:           "fishweb",
 		Short:         "Web apps like serverless",
 		Version:       "dev",
 		SilenceErrors: true,
 	}
 
-	cmd.AddCommand(NewCmdServe())
-	cmd.AddCommand(NewCmdNew())
+	rootCmd.AddCommand(NewCmdServe())
+	rootCmd.AddCommand(NewCmdNew())
 
-	return cmd
+	return rootCmd
 }
