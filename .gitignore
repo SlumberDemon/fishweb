@@ -1,3 +1,5 @@
-.DS_store
-__debug_bin*
-fishweb
+.venv
+__pycache__
+.ropeproject
+fishweb.egg-info
+build

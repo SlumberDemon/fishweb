@@ -1,41 +1,39 @@
 # Fishweb
 
-## App structure
+Fishweb is a simple cli that makes it easy to run Python ASAGI applications effortlessly. It may be thought of as the Python equivalent of [smallweb](https://github.com/pomdtr/smallweb).
 
-You can quickly create a new app with `fishweb new [name]` or create a folder in `$HOME/fishweb` which maps to `<folder-name>.localhost:8888`.
+Map domains to folders in your filesystem.
 
-As fishweb uses uvicorn any [ASGI framework](https://www.uvicorn.org/#asgi-frameworks) is supported. Apps must have a `main.py` file and the instance must be named `app`.
-They also need a `requirements.txt` file to install libraries. Environment variables should be provided in a `.env` file.
+- `https://example.sofa.sh` maps to `~/fishweb/example`
 
-## Cloudflare
+Turn a new folder into a website without the need to start a development server or even setup a virtual environment.
 
-Guide soon
+## Documentation
 
-## Prerequisite
+### Prerequisite
 
-- [Go](https://go.dev/)
-- [UV standalone](https://docs.astral.sh/uv/getting-started/installation/)
-- [Uvicorn](https://pypi.org/project/uvicorn/) (optional)
+- [UV](https://docs.astral.sh/uv/getting-started/installation/)
 
-Uvicorn **must** either be installed globally or added to an apps `requirements.txt`.
-
-## Source install
-
-> macOS and linux
+### Installation
 
 ```shell
-# Clone and change into directory
 git clone https://github.com/slumberdemon/fishweb
 cd fishweb
-
-# Get executable binary
-go build
-
-# Move to correct location
-sudo cp fishweb $HOME/.local/bin
 ```
 
+#### UV (recommended)
 
-## Issues
-- [ ] Find a way to stop leaving <defunct> processes
-- [ ] Clean up error messages
+```shell
+uv tool install .
+```
+
+Now you should be able to run `fishweb` and see the help menu!
+
+View the full docs [here]()
+
+## Inspirations
+
+Projects that have shaped fishweb with it's concepts, design and ideas.
+
+- [smallweb](https://github.com/pomdtr/smallweb)
+- [deta.space](https://github.com/deta/space-docs)
