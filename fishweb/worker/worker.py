@@ -1,3 +1,4 @@
+from shlex import join
 import shutil
 import socket
 import subprocess
@@ -31,24 +32,32 @@ class Worker:
         cmd = [
             uv,
             "run",
-            "--with-requirements",
-            "requirements.txt",
-            "uvicorn",
-            "main:app",
-            "--port",
-            str(self.port),
-            "--host",
-            "localhost",
-            "--ws",
-            "none",
-            "--lifespan",
-            "off",
-            "--timeout-keep-alive",
-            "30",
         ]
-
+        if app_dir.joinpath("requirements.txt").exists():
+            cmd.extend(
+                [
+                    "--with-requirements",
+                    "requirements.txt",
+                ]
+            )
         if app_dir.joinpath(".env").exists():
             cmd.extend(["--env-file", ".env"])
+        cmd.extend(
+            [
+                "uvicorn",
+                "main:app",
+                "--port",
+                str(self.port),
+                "--host",
+                "localhost",
+                "--ws",
+                "none",
+                "--lifespan",
+                "off",
+                "--timeout-keep-alive",
+                "30",
+            ]
+        )
 
         process = subprocess.Popen(
             cmd,
