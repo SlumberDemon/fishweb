@@ -1,13 +1,14 @@
 import typer
 
-from .cmd import logs_app, serve_app
+from fishweb.cmd.logs import logs_cli
+from fishweb.cmd.serve import serve_cli
 
-app = typer.Typer(
+cli = typer.Typer(
     help="Web apps like serverless",
     epilog="Use 'fishweb [command] --help' for more information about a command.",
     rich_markup_mode="markdown",
     no_args_is_help=True,
 )
 
-app.add_typer(serve_app)
-app.add_typer(logs_app)
+cli.add_typer(serve_cli)
+cli.add_typer(logs_cli)

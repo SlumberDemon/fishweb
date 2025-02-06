@@ -1,0 +1,2 @@
+fastapi==0.115.8
+pyjokes==0.8.3

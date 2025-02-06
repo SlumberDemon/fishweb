@@ -1,11 +1,11 @@
 from pathlib import Path
+from typing import Annotated
 
 import typer
 from platformdirs import user_cache_dir
 from rich import print
-from typing_extensions import Annotated
 
-app = typer.Typer()
+logs_cli = typer.Typer()
 
 
 def apps():
@@ -23,7 +23,7 @@ def get_app_logs(app: str):
     return ""
 
 
-@app.command(no_args_is_help=True)
+@logs_cli.command(no_args_is_help=True)
 def logs(
     app: Annotated[str, typer.Argument(autocompletion=apps)] = "",
     all: Annotated[
