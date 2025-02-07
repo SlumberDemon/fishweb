@@ -1,8 +1,14 @@
 from pathlib import Path
 from typing import Annotated
 
-import uvicorn
+from rich import print
 from typer import Option, Typer
+
+try:
+    import uvicorn
+except ImportError:
+    uvicorn = None
+
 
 from fishweb.app import DEFAULT_ROOT_DIR, create_fishweb_app
 
@@ -23,7 +29,11 @@ def serve(
     """
     Start fishweb server
     """
-    host, port = bind_address.split(":")
-    app = create_fishweb_app(bind_address=bind_address, root_dir=root_dir)
-    # TODO(lemonyte): Make uvicorn dependency optional.
-    uvicorn.run(app, host=host, port=int(port))
+    if uvicorn:
+        host, port = bind_address.split(":")
+        app = create_fishweb_app(bind_address=bind_address, root_dir=root_dir)
+        uvicorn.run(app, host=host, port=int(port))
+    else:
+        print("Uvicorn is not installed.")
+        print("Reinstall fishweb with the 'serve' extra to use this command.")
+        print(r"e.g. [bold blue]uv tool install fishweb\[serve][/bold blue]")
