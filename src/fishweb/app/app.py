@@ -43,10 +43,16 @@ class SubdomainMiddleware:
         address = request.headers.get("host") or ""
         subdomain = "www" if address == self.bind_address else address.split(".")[0]
 
+        if not subdomain:  # Prevent requests to the root directory, e.g. with ".localhost:8888"
+            response = PlainTextResponse(
+                content=HTTPStatus.NOT_FOUND.phrase,
+                status_code=HTTPStatus.NOT_FOUND,
+            )
+            return await response(scope, receive, send)
         if not (self.root_dir / subdomain).exists():
             logger.warning(f"{subdomain} not found")
             if subdomain == "www":
-                # TODO: Include a link to the docs perhaps?
+                # TODO(lemonyte): Include a link to the docs perhaps?
                 response = PlainTextResponse(content="Fishweb is running!")
             else:
                 response = PlainTextResponse(
