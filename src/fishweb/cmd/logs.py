@@ -1,43 +1,39 @@
 from pathlib import Path
 from typing import Annotated
 
-import typer
 from platformdirs import user_cache_dir
-from rich import print
+from typer import Argument, Option, Typer, echo
 
-logs_cli = typer.Typer()
+from fishweb.app import DEFAULT_ROOT_DIR
 
-
-def apps():
-    dir = Path.home().joinpath("fishweb")
-    if dir.exists():
-        return [d.name for d in dir.iterdir() if d.is_dir()]
-    return []
+logs_cli = Typer()
 
 
-def get_app_logs(app: str):
+def get_app_list(root_dir: Path) -> list[str]:
+    return [dir.name for dir in root_dir.iterdir() if dir.is_dir()] if root_dir.is_dir() else []
+
+
+def get_app_logs(app: str) -> str:
     log_path = Path(user_cache_dir("fishweb")).joinpath("domains", app, "logs.log")
     if log_path.exists():
-        with open(log_path) as file:
-            return file.read()
+        return log_path.read_text()
     return ""
 
 
 @logs_cli.command(no_args_is_help=True)
 def logs(
-    app: Annotated[str, typer.Argument(autocompletion=apps)] = "",
-    all: Annotated[
-        bool, typer.Option("--all", "-a", help="show logs for all apps")
-    ] = False,
-):
+    app: Annotated[str, Argument(autocompletion=lambda: get_app_list(DEFAULT_ROOT_DIR))] = "",
+    *,
+    all: Annotated[bool, Option("--all", "-a", help="show logs for all apps")] = False,
+    root_dir: Annotated[Path, Option("--root", "-r", help="root directory to search for apps")] = DEFAULT_ROOT_DIR,
+) -> None:
     """
     View app logs
     """
     if all:
-        for app in apps():
-            logs = get_app_logs(app)
-            print(f"[reverse blue]{app} logs[/reverse blue] \n{logs}")
-
-    if not all:
+        for found_app in get_app_list(root_dir):
+            logs = get_app_logs(found_app)
+            echo(f"[reverse blue]{found_app} logs[/reverse blue]\n{logs}")
+    else:
         logs = get_app_logs(app)
-        print(logs)
+        echo(logs)
