@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Annotated
 
 from platformdirs import user_cache_dir
-from typer import Argument, Option, Typer, echo
+from rich import print
+from typer import Argument, Option, Typer
 
 from fishweb.app import DEFAULT_ROOT_DIR
 
@@ -33,7 +34,7 @@ def logs(
     if all:
         for found_app in get_app_list(root_dir):
             logs = get_app_logs(found_app)
-            echo(f"[reverse blue]{found_app} logs[/reverse blue]\n{logs}")
+            print(f"[reverse blue]{found_app} logs[/reverse blue]\n{logs}")
     else:
         logs = get_app_logs(app)
-        echo(logs)
+        print(logs)
