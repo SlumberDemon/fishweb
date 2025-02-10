@@ -1,7 +1,0 @@
-platformdirs
-setuptools
-starlette
-aiohttp
-uvicorn
-loguru
-typer
