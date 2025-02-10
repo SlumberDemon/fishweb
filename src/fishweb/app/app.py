@@ -14,9 +14,8 @@ DEFAULT_ROOT_DIR = Path.home() / "fishweb"
 
 
 class SubdomainMiddleware:
-    def __init__(self, app: ASGIApp, *, bind_address: str, root_dir: Path) -> None:
+    def __init__(self, app: ASGIApp, *, root_dir: Path) -> None:
         self.app = app
-        self.bind_address = bind_address
         self.root_dir = root_dir
         self.app_wrappers: dict[str, AppWrapper] = {}
 
@@ -40,12 +39,12 @@ class SubdomainMiddleware:
             return await self.app(scope, receive, send)
 
         request = Request(scope)
-        address = request.headers.get("host") or ""
-        subdomain = "www" if address == self.bind_address else address.split(".")[0]
+        hostname = request.url.hostname or ""
+        subdomain = "www" if "." not in hostname else hostname.split(".")[0]
         app_dir = self.root_dir / subdomain
 
-        # Prevent requests outside of the root directory,
-        # e.g. "http://.localhost:8888"
+        # Prevent requests outside of the root directory or to the root directory itself,
+        # e.g. "http://.localhost"
         if app_dir.parent != self.root_dir:
             response = PlainTextResponse(
                 content=HTTPStatus.NOT_FOUND.phrase,
@@ -84,6 +83,6 @@ class SubdomainMiddleware:
         return await app(scope, receive, send)
 
 
-def create_fishweb_app(*, bind_address: str, root_dir: Path) -> Starlette:
-    middleware = (Middleware(SubdomainMiddleware, bind_address=bind_address, root_dir=root_dir),)
+def create_fishweb_app(*, root_dir: Path) -> Starlette:
+    middleware = (Middleware(SubdomainMiddleware, root_dir=root_dir),)
     return Starlette(middleware=middleware)

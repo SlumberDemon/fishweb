@@ -1,8 +1,10 @@
+import os
+from pathlib import Path
+
 from fishweb.app import DEFAULT_ROOT_DIR, create_fishweb_app
 
 app = create_fishweb_app(
-    bind_address="localhost:8888",  # TODO: get it from uvicorn?
-    root_dir=DEFAULT_ROOT_DIR,  # TODO: get it from argv?
+    root_dir=Path(os.getenv("FISHWEB_ROOT_DIR", DEFAULT_ROOT_DIR)),
 )
 
 __all__ = ("app",)
