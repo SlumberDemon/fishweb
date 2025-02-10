@@ -5,6 +5,7 @@ from fishweb.app import DEFAULT_ROOT_DIR, create_fishweb_app
 
 app = create_fishweb_app(
     root_dir=Path(os.getenv("FISHWEB_ROOT_DIR", DEFAULT_ROOT_DIR)),
+    reload=bool(os.getenv("FISHWEB_RELOAD")),
 )
 
 __all__ = ("app",)

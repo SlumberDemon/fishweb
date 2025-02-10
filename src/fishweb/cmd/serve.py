@@ -17,6 +17,7 @@ serve_cli = Typer()
 
 @serve_cli.command()
 def serve(
+    *,
     host: Annotated[
         str,
         Option("--host", "-h", help="host address to listen on"),
@@ -29,14 +30,18 @@ def serve(
         Path,
         Option("--root", "-r", help="root directory to serve apps from"),
     ] = DEFAULT_ROOT_DIR,
+    reload: Annotated[
+        bool,
+        Option("--reload", "-r", help="enable live reloading"),
+    ] = False,
 ) -> None:
     """
     Start fishweb server
     """
     if uvicorn:
-        app = create_fishweb_app(root_dir=root_dir)
+        app = create_fishweb_app(root_dir=root_dir, reload=reload)
         uvicorn.run(app, host=host, port=port)
     else:
         print("Uvicorn is not installed.")
-        print("Reinstall fishweb with the 'serve' extra to use this command.")
+        print("Install fishweb with the 'serve' extra to use this command.")
         print(r"e.g. [bold blue]uv tool install fishweb\[serve][/bold blue]")
