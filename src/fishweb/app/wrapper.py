@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import runpy
-import shutil
 import sys
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from loguru import logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from starlette.types import ASGIApp
 
 
@@ -46,22 +46,3 @@ class AppWrapper:
 
     def get_app_mtime(self) -> float:
         return self.app_dir.stat().st_mtime
-
-    # TODO(lemonyte): Maybe add automatic requirements syncing with pyproject.toml and requirements.txt support.
-    def locate_uv(self) -> str:
-        uv_path = shutil.which("uv")
-        if uv_path:
-            return uv_path
-
-        uv_paths = [
-            Path.home().joinpath(".local", "bin", "uv"),
-            "/usr/local/bin/uv",
-            "/opt/homebrew/bin/uv",
-        ]
-
-        for path in uv_paths:
-            if Path(path).exists():
-                return str(path)
-
-        logger.error("uv executable not found")
-        return ""
