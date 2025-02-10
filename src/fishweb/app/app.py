@@ -42,14 +42,17 @@ class SubdomainMiddleware:
         request = Request(scope)
         address = request.headers.get("host") or ""
         subdomain = "www" if address == self.bind_address else address.split(".")[0]
+        app_dir = self.root_dir / subdomain
 
-        if not subdomain:  # Prevent requests to the root directory, e.g. with ".localhost:8888"
+        # Prevent requests outside of the root directory,
+        # e.g. "http://.localhost:8888"
+        if app_dir.parent != self.root_dir:
             response = PlainTextResponse(
                 content=HTTPStatus.NOT_FOUND.phrase,
                 status_code=HTTPStatus.NOT_FOUND,
             )
             return await response(scope, receive, send)
-        if not (self.root_dir / subdomain).exists():
+        if not app_dir.exists():
             logger.warning(f"{subdomain} not found")
             if subdomain == "www":
                 # TODO(lemonyte): Include a link to the docs perhaps?
