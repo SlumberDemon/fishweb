@@ -44,7 +44,7 @@ class SubdomainMiddleware:
         subdomain = "www" if address == self.bind_address else address.split(".")[0]
         app_dir = self.root_dir / subdomain
 
-        # Prevent requests outside of the root directory,
+        # Prevent requests outside of the root directory or to the root directory itself,
         # e.g. "http://.localhost:8888"
         if app_dir.parent != self.root_dir:
             response = PlainTextResponse(
