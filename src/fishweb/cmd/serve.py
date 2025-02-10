@@ -17,10 +17,14 @@ serve_cli = Typer()
 
 @serve_cli.command()
 def serve(
-    bind_address: Annotated[
+    host: Annotated[
         str,
-        Option("--addr", "-a", help="bind address to listen on"),
-    ] = "localhost:8888",
+        Option("--host", "-h", help="host address to listen on"),
+    ] = "localhost",
+    port: Annotated[
+        int,
+        Option("--port", "-p", help="port number to listen on"),
+    ] = 8888,
     root_dir: Annotated[
         Path,
         Option("--root", "-r", help="root directory to serve apps from"),
@@ -30,9 +34,8 @@ def serve(
     Start fishweb server
     """
     if uvicorn:
-        host, port = bind_address.split(":")
-        app = create_fishweb_app(bind_address=bind_address, root_dir=root_dir)
-        uvicorn.run(app, host=host, port=int(port))
+        app = create_fishweb_app(root_dir=root_dir)
+        uvicorn.run(app, host=host, port=port)
     else:
         print("Uvicorn is not installed.")
         print("Reinstall fishweb with the 'serve' extra to use this command.")
