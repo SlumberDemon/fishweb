@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import runpy
 import sys
 import time
@@ -94,3 +95,15 @@ class AppWrapper:
             raise AppStartupError(module_path, msg) from exc
         finally:
             sys.path = original_sys_path
+
+    def get_app_git(self) -> float | None:
+        git_path = self.app_dir / ".git"
+
+        if git_path.exists():
+            git_head_file = git_path / "HEAD"
+
+            ref_path = git_head_file.open("r").read().split(" ")[1].strip()
+            file = self.app_dir / ".git" / ref_path
+
+            return os.path.getmtime(file)
+        return None

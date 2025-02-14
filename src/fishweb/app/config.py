@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel
 import yaml
 from pathlib import Path
-from typing import List
 
 # idea for fishweb.yaml:
 """
@@ -28,13 +29,14 @@ class Cron(BaseModel):
 
 
 class FishwebConfig(BaseSettings):
+    git_reloading: bool = False
     load_env: bool = True
-    public_routes: List[str] = []
+    public_routes: list[str] = []
     auto_deps: dict[str, Path] = {}
-    crons: List[Cron] = []
+    crons: list[Cron] = []
 
 
-def load_config(app_dir: Path) -> FishwebConfig:
+def load_config(app_dir: Path) -> FishwebConfig | None:
     config_file = app_dir / "fishweb.yaml"
 
     if config_file.exists():
@@ -42,3 +44,4 @@ def load_config(app_dir: Path) -> FishwebConfig:
             config_data = yaml.safe_load(file)
 
             return FishwebConfig().model_validate(config_data)
+    return None

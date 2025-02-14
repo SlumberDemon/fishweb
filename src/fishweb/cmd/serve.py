@@ -35,7 +35,8 @@ def serve(
         Option("--reload", "-r", help="enable live reloading"),
     ] = False,
     crons: Annotated[
-        bool, Option("--crons", "-c", help="enable crons")
+        bool,
+        Option("--crons", "-c", help="enable crons"),
     ] = False,  # if crons found in config and this is true, create crons with python-crontab
 ) -> None:
     """
