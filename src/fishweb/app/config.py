@@ -7,7 +7,8 @@ from pathlib import Path
 
 # idea for fishweb.yaml:
 """
-environment: .venv
+engine: static | asagi
+venv_path: .venv
 entry: path.main:app # later
 public_routes: # later
   - "/*"
@@ -24,7 +25,7 @@ class Cron(BaseModel):
 
 
 class FishwebConfig(BaseSettings):
-    environment: Path = Path(".venv")
+    venv_path: Path = Path(".venv")
     crons: list[Cron] = []
 
 
