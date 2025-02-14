@@ -1,3 +1,4 @@
+import os
 from typing import Annotated
 
 from typer import Typer, Argument, Option
@@ -21,4 +22,7 @@ def run(
     Run a cron job
     """
     # (TODO) add `crons` command to get details of cron jobs
+
+    os.system('osascript -e \'display notification "This is a test notification" with title "Test Title"\'')
+
     print(f"Running cron job for app: {app} and job: {job}")  # placeholder

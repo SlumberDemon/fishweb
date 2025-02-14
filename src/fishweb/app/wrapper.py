@@ -53,6 +53,7 @@ class AppWrapper:
         self.app_dir = app_dir
         self.created_at = time.time()
         self.config = AppConfig.load_from_dir(self.app_dir)
+        self._manage_crons()
         self._app: ASGIApp | None = None
         if self.config.reload or reload:
             if watchdog_available and Observer:
@@ -79,6 +80,7 @@ class AppWrapper:
     def reload(self) -> None:
         logger.debug(f"reloading app '{self.app_dir.name}' from {self.app_dir}")
         self.config = AppConfig.load_from_dir(self.app_dir)
+        self._manage_crons()
         self._try_import()
 
     def _try_import(self) -> None:
@@ -110,31 +112,47 @@ class AppWrapper:
         finally:
             sys.path = original_sys_path
 
-    def _manage_crons(self) -> None:
-        crontab = CronTab(user=True)  # unix only atm
+    def _manage_crons(
+        self,
+    ) -> None:  # (TODO): improve to reduce overhead and or change the locations its called. also what if cron interval changes?
+        logger.debug(f"processing crons for app '{self.app_dir.name}'")
+        crontab = CronTab(user=True)  # unix only atm # seems mac needs some extra stuff too
+
+        running_crons = list(
+            c.comment.split("_")[1] for c in crontab.find_comment(re.compile(f"{self.app_dir.name}_"))
+        )
+
+        # (Todo: fix when not tired) - This whole thing is a mess
+
+        if not self.config.crons and running_crons:
+            for cron in running_crons:
+                logger.debug(f"removing cron job '{cron}'")
+
+                job = crontab.find_comment(f"{self.app_dir.name}_{cron}")
+                crontab.remove(job)
+                crontab.write()
+
+        if running_crons and self.config.crons:
+            for cron in running_crons:
+                if cron not in [c.id for c in self.config.crons]:
+                    logger.debug(f"removing cron job '{cron}'")
+
+                    job = crontab.find_comment(f"{self.app_dir.name}_{cron}")
+                    crontab.remove(job)
+                    crontab.write()
 
         if self.config.crons:
-            logger.debug(f"processing crons for app '{self.app_dir.name}'")
-
-            running_crons = list(
-                c.comment.split("_")[1] for c in crontab.find_comment(re.compile(f"{self.app_dir.name}_"))
-            )
-
             for cron in self.config.crons:
                 if cron.id not in running_crons:
                     if not CronSlices.is_valid(cron.interval):
                         logger.error("invalid interval format")
                         return
 
-                    logger.debug(f"creating new cron job '{cron.id}'")
+                    logger.debug(f"creating cron job '{cron.id}'")
 
                     new_cron = crontab.new(
                         command=f"fishweb run {self.app_dir.name} --job {cron.id}",
                         comment=f"{self.app_dir.name}_{cron.id}",
                     )
                     new_cron.setall(cron.interval)
-
-                else:
-                    job = crontab.find_comment(f"{self.app_dir.name}_{cron.id}")
-                    crontab.remove(job)
-            crontab.write()
+                    crontab.write()
