@@ -7,10 +7,9 @@ from pathlib import Path
 
 # idea for fishweb.yaml:
 """
-backend: uvicorn # maybe
-load_env: true
-auto_deps: true # automatic?
-public_routes:
+environment: .venv
+entry: path.main:app # later
+public_routes: # later
   - "/*"
 public: true # maybe
 crons:
@@ -25,10 +24,7 @@ class Cron(BaseModel):
 
 
 class FishwebConfig(BaseSettings):
-    git_reloading: bool = False
-    load_env: bool = True
-    public_routes: list[str] = []
-    auto_deps: dict[str, Path] = {}
+    environment: Path = Path(".venv")
     crons: list[Cron] = []
 
 

@@ -2,6 +2,7 @@ from typing import Annotated
 
 from typer import Typer, Argument, Option
 from fishweb.app import DEFAULT_ROOT_DIR
+from pathlib import Path
 
 cron_cli = Typer()
 
