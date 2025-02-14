@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from loguru import logger
 
-from .config import AppConfig
+from fishweb.app.config import AppConfig
 
 try:
     from watchdog.events import EVENT_TYPE_CLOSED, FileSystemEvent, FileSystemEventHandler
