@@ -1,15 +1,23 @@
 from __future__ import annotations
+from crontab import CronTab, CronSlices
 
-import os
+import re
 import runpy
 import sys
 import time
+
+from uvicorn.main import run
+from fishweb.app.config import load_config
 from typing import TYPE_CHECKING
 
 from loguru import logger
 
 try:
-    from watchdog.events import EVENT_TYPE_CLOSED, FileSystemEvent, FileSystemEventHandler
+    from watchdog.events import (
+        EVENT_TYPE_CLOSED,
+        FileSystemEvent,
+        FileSystemEventHandler,
+    )
     from watchdog.observers import Observer
 
     watchdog_available = True
@@ -22,6 +30,7 @@ try:
             # BUG: Editing a file in VSCode on Windows can trigger 2 events.
             if event.event_type != EVENT_TYPE_CLOSED:
                 self.app_wrapper.reload()
+
 
 except ImportError:
     watchdog_available = False
@@ -79,7 +88,6 @@ class AppWrapper:
             str(self.app_dir),
             str(venv_path),
             str(venv_path / "lib" / "site-packages"),
-            *sys.path,
         ]
 
         try:
@@ -96,14 +104,31 @@ class AppWrapper:
         finally:
             sys.path = original_sys_path
 
-    def get_app_git(self) -> float | None:
-        git_path = self.app_dir / ".git"
+    def _manage_crons(self) -> None:
+        crontab = CronTab(user=True)  # unix only atm
 
-        if git_path.exists():
-            git_head_file = git_path / "HEAD"
+        if self.config and self.config.crons:
+            logger.debug(f"processing crons for app '{self.app_dir.name}'")
 
-            ref_path = git_head_file.open("r").read().split(" ")[1].strip()
-            file = self.app_dir / ".git" / ref_path
+            running_crons = list(
+                c.comment.split("_")[1] for c in crontab.find_comment(re.compile(f"{self.app_dir.name}_"))
+            )
 
-            return os.path.getmtime(file)
-        return None
+            for cron in self.config.crons:
+                if cron.id not in running_crons:
+                    if not CronSlices.is_valid(cron.interval):
+                        logger.error("invalid interval format")
+                        return
+
+                    logger.debug(f"creating new cron job '{cron.id}'")
+
+                    new_cron = crontab.new(
+                        command=f"fishweb run {self.app_dir.name} --job {cron.id}",
+                        comment=f"{self.app_dir.name}_{cron.id}",
+                    )
+                    new_cron.setall(cron.interval)
+
+                else:
+                    job = crontab.find_comment(f"{self.app_dir.name}_{cron.id}")
+                    crontab.remove(job)
+            crontab.write()

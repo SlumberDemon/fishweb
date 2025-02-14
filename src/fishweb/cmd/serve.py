@@ -34,10 +34,11 @@ def serve(
         bool,
         Option("--reload", "-r", help="enable live reloading"),
     ] = False,
-    crons: Annotated[
-        bool,
-        Option("--crons", "-c", help="enable crons"),
-    ] = False,  # if crons found in config and this is true, create crons with python-crontab
+    # (TODO) Crons flag, if needed
+    # crons: Annotated[
+    #     bool,
+    #     Option("--crons", "-c", help="enable crons"),
+    # ] = False,  # if crons found in config and this is true, create crons with python-crontab
 ) -> None:
     """
     Start fishweb server
