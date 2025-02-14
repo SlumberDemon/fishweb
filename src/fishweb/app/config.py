@@ -7,12 +7,8 @@ from pathlib import Path
 
 # idea for fishweb.yaml:
 """
-favicon: icon.png # maybe
 backend: uvicorn # maybe
 load_env: true
-auto_deps:
-  path: requirements.txt # allow for pyproject?
-auto_deps: requirements.txt # simplier?
 auto_deps: true # automatic?
 public_routes:
   - "/*"
