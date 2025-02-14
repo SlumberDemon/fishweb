@@ -78,6 +78,7 @@ class AppWrapper:
             str(self.app_dir),
             str(venv_path),
             str(venv_path / "lib" / "site-packages"),
+            str(venv_path / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"),
             *sys.path,
         ]
 
