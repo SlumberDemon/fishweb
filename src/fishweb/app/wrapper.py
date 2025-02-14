@@ -44,7 +44,7 @@ class AppWrapper:
     def __init__(self, app_dir: Path, /, *, reload: bool = False) -> None:
         self.app_dir = app_dir
         self.created_at = time.time()
-        self.config = AppConfig(self.app_dir)
+        self.config = AppConfig.load_from_dir(self.app_dir)
         self._app: ASGIApp | None = None
         if self.config.reload or reload:
             if watchdog_available and Observer:
@@ -70,7 +70,7 @@ class AppWrapper:
 
     def reload(self) -> None:
         logger.debug(f"reloading app '{self.app_dir.name}' from {self.app_dir}")
-        self.config = AppConfig(self.app_dir)
+        self.config = AppConfig.load_from_dir(self.app_dir)
         self._try_import()
 
     def _try_import(self) -> None:
