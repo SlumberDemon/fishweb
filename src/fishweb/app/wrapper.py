@@ -1,13 +1,11 @@
 from __future__ import annotations
-from crontab import CronTab, CronSlices
 
-import re
 import runpy
 import sys
 import time
-
 from typing import TYPE_CHECKING
 
+from crontab import CronSlices, CronTab
 from loguru import logger
 
 from fishweb.app.config import AppConfig
@@ -30,8 +28,6 @@ try:
             # BUG: Editing a file in VSCode on Windows can trigger 2 events.
             if event.event_type != EVENT_TYPE_CLOSED:
                 self.app_wrapper.reload()
-
-
 except ImportError:
     watchdog_available = False
     Observer = None
@@ -51,9 +47,10 @@ class AppStartupError(Exception):
 class AppWrapper:
     def __init__(self, app_dir: Path, /, *, reload: bool = False) -> None:
         self.app_dir = app_dir
+        self.name = app_dir.name
         self.created_at = time.time()
         self.config = AppConfig.load_from_dir(self.app_dir)
-        self._manage_crons()
+        self._load_crons()
         self._app: ASGIApp | None = None
         if self.config.reload or reload:
             if watchdog_available and Observer:
@@ -78,13 +75,13 @@ class AppWrapper:
         return self._app
 
     def reload(self) -> None:
-        logger.debug(f"reloading app '{self.app_dir.name}' from {self.app_dir}")
+        logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
         self.config = AppConfig.load_from_dir(self.app_dir)
-        self._manage_crons()
+        self._load_crons()
         self._try_import()
 
     def _try_import(self) -> None:
-        logger.debug(f"loading app '{self.app_dir.name}'")
+        logger.debug(f"loading app '{self.name}'")
         module, app_name = self.config.entry.split(":", maxsplit=1)
         module_path = self.app_dir.joinpath(module.replace(".", "/")).with_suffix(".py")
 
@@ -112,47 +109,28 @@ class AppWrapper:
         finally:
             sys.path = original_sys_path
 
-    def _manage_crons(
-        self,
-    ) -> None:  # (TODO): improve to reduce overhead and or change the locations its called. also what if cron interval changes?
-        logger.debug(f"processing crons for app '{self.app_dir.name}'")
-        crontab = CronTab(user=True)  # unix only atm # seems mac needs some extra stuff too
+    def _load_crons(self) -> None:
+        logger.debug(f"processing crons for app '{self.name}'")
+        crontab = CronTab(tabfile=str(self.app_dir / "fishweb.cron"))
+        cron_ids = [cron.id for cron in self.config.crons]
 
-        running_crons = list(
-            c.comment.split("_")[1] for c in crontab.find_comment(re.compile(f"{self.app_dir.name}_"))
-        )
+        for cron_item in crontab:
+            if cron_item.comment not in cron_ids:
+                logger.debug(f"removing cron job '{self.name}/{cron_item.comment}'")
+                crontab.remove(cron_item)
 
-        # (Todo: fix when not tired) - This whole thing is a mess
-
-        if not self.config.crons and running_crons:
-            for cron in running_crons:
-                logger.debug(f"removing cron job '{cron}'")
-
-                job = crontab.find_comment(f"{self.app_dir.name}_{cron}")
-                crontab.remove(job)
-                crontab.write()
-
-        if running_crons and self.config.crons:
-            for cron in running_crons:
-                if cron not in [c.id for c in self.config.crons]:
-                    logger.debug(f"removing cron job '{cron}'")
-
-                    job = crontab.find_comment(f"{self.app_dir.name}_{cron}")
-                    crontab.remove(job)
-                    crontab.write()
-
-        if self.config.crons:
-            for cron in self.config.crons:
-                if cron.id not in running_crons:
-                    if not CronSlices.is_valid(cron.interval):
-                        logger.error("invalid interval format")
-                        return
-
-                    logger.debug(f"creating cron job '{cron.id}'")
-
-                    new_cron = crontab.new(
-                        command=f"fishweb run {self.app_dir.name} --job {cron.id}",
-                        comment=f"{self.app_dir.name}_{cron.id}",
-                    )
-                    new_cron.setall(cron.interval)
-                    crontab.write()
+        for cron in self.config.crons:
+            if not CronSlices.is_valid(cron.interval):
+                logger.error(f"invalid interval format for cron '{self.name}/{cron.id}': {cron.interval}")
+                continue
+            try:
+                cron_item = next(crontab.find_comment(cron.id))
+                logger.debug(f"updating cron job '{cron.id}'")
+            except StopIteration:
+                logger.debug(f"creating cron job '{cron.id}'")
+                cron_item = crontab.new(
+                    command=f"{sys.argv[0]} run {self.name} --job {cron.id}",
+                    comment=cron.id,
+                )
+            cron_item.setall(cron.interval)
+        crontab.write()
