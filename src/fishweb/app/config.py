@@ -10,9 +10,11 @@ class AppType(Enum):
     ASGI = "asgi"
     STATIC = "static"
 
+
 class Cron(BaseModel):
     id: str
     interval: str
+
 
 class AppConfig(BaseSettings):
     app_type: AppType = AppType.ASGI

@@ -6,8 +6,6 @@ import runpy
 import sys
 import time
 
-from uvicorn.main import run
-from fishweb.app.config import load_config
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -115,7 +113,7 @@ class AppWrapper:
     def _manage_crons(self) -> None:
         crontab = CronTab(user=True)  # unix only atm
 
-        if self.config and self.config.crons:
+        if self.config.crons:
             logger.debug(f"processing crons for app '{self.app_dir.name}'")
 
             running_crons = list(
