@@ -9,6 +9,7 @@ dependencies = [
     "starlette~=0.45.3",
     "loguru~=0.7.3",
     "typer~=0.15.1",
+    "pydantic-settings[yaml]~=2.7.1",
 ]
 classifiers = ["Programming Language :: Python"]
 dynamic = ["version"]
