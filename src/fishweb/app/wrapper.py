@@ -1,8 +1,13 @@
 from __future__ import annotations
+from crontab import CronTab, CronSlices
 
+import re
 import runpy
 import sys
 import time
+
+from uvicorn.main import run
+from fishweb.app.config import load_config
 from typing import TYPE_CHECKING
 
 from loguru import logger
@@ -10,7 +15,11 @@ from loguru import logger
 from fishweb.app.config import AppConfig
 
 try:
-    from watchdog.events import EVENT_TYPE_CLOSED, FileSystemEvent, FileSystemEventHandler
+    from watchdog.events import (
+        EVENT_TYPE_CLOSED,
+        FileSystemEvent,
+        FileSystemEventHandler,
+    )
     from watchdog.observers import Observer
 
     watchdog_available = True
@@ -23,6 +32,7 @@ try:
             # BUG: Editing a file in VSCode on Windows can trigger 2 events.
             if event.event_type != EVENT_TYPE_CLOSED:
                 self.app_wrapper.reload()
+
 
 except ImportError:
     watchdog_available = False
@@ -101,3 +111,32 @@ class AppWrapper:
             raise AppStartupError(module_path, msg) from exc
         finally:
             sys.path = original_sys_path
+
+    def _manage_crons(self) -> None:
+        crontab = CronTab(user=True)  # unix only atm
+
+        if self.config and self.config.crons:
+            logger.debug(f"processing crons for app '{self.app_dir.name}'")
+
+            running_crons = list(
+                c.comment.split("_")[1] for c in crontab.find_comment(re.compile(f"{self.app_dir.name}_"))
+            )
+
+            for cron in self.config.crons:
+                if cron.id not in running_crons:
+                    if not CronSlices.is_valid(cron.interval):
+                        logger.error("invalid interval format")
+                        return
+
+                    logger.debug(f"creating new cron job '{cron.id}'")
+
+                    new_cron = crontab.new(
+                        command=f"fishweb run {self.app_dir.name} --job {cron.id}",
+                        comment=f"{self.app_dir.name}_{cron.id}",
+                    )
+                    new_cron.setall(cron.interval)
+
+                else:
+                    job = crontab.find_comment(f"{self.app_dir.name}_{cron.id}")
+                    crontab.remove(job)
+            crontab.write()
