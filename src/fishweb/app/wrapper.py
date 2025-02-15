@@ -3,12 +3,14 @@ from __future__ import annotations
 import runpy
 import sys
 import time
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 from crontab import CronSlices, CronTab
 from loguru import logger
+from starlette.staticfiles import StaticFiles
 
-from fishweb.app.config import AppConfig
+from fishweb.app.config import AppConfig, AppType
 
 try:
     from watchdog.events import (
@@ -21,7 +23,7 @@ try:
     watchdog_available = True
 
     class ReloadHandler(FileSystemEventHandler):
-        def __init__(self, app_wrapper: AppWrapper, /) -> None:
+        def __init__(self, app_wrapper: ASGIAppWrapper, /) -> None:
             self.app_wrapper = app_wrapper
 
         def on_any_event(self, event: FileSystemEvent) -> None:
@@ -44,12 +46,31 @@ class AppStartupError(Exception):
         self.path = path
 
 
-class AppWrapper:
-    def __init__(self, app_dir: Path, /, *, reload: bool = False) -> None:
+class AppWrapper(ABC):
+    def __init__(self, app_dir: Path, /, *, config: AppConfig) -> None:
         self.app_dir = app_dir
         self.name = app_dir.name
         self.created_at = time.time()
-        self.config = AppConfig.load_from_dir(self.app_dir)
+        self.config = config
+
+    @property
+    @abstractmethod
+    def app(self) -> ASGIApp: ...
+
+
+class StaticAppWrapper(AppWrapper):
+    def __init__(self, app_dir: Path, /, *, config: AppConfig) -> None:
+        super().__init__(app_dir, config=config)
+        self._app = StaticFiles(directory=app_dir, html=True)
+
+    @property
+    def app(self) -> ASGIApp:
+        return self._app
+
+
+class ASGIAppWrapper(AppWrapper):
+    def __init__(self, app_dir: Path, /, *, config: AppConfig, reload: bool = False) -> None:
+        super().__init__(app_dir, config=config)
         self._load_crons()
         self._app: ASGIApp | None = None
         if self.config.reload or reload:
@@ -69,18 +90,18 @@ class AppWrapper:
                 )
 
     @property
-    def app(self) -> ASGIApp | None:
+    def app(self) -> ASGIApp:
         if self._app is None:
-            self._try_import()
+            self._app = self._try_import()
         return self._app
 
     def reload(self) -> None:
         logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
         self.config = AppConfig.load_from_dir(self.app_dir)
         self._load_crons()
-        self._try_import()
+        self._app = self._try_import()
 
-    def _try_import(self) -> None:
+    def _try_import(self) -> ASGIApp:
         logger.debug(f"loading app '{self.name}'")
         module, app_name = self.config.entry.split(":", maxsplit=1)
         module_path = self.app_dir.joinpath(module.replace(".", "/")).with_suffix(".py")
@@ -99,10 +120,14 @@ class AppWrapper:
             logger.debug(f"executing module {module_path}")
             namespace = runpy.run_path(str(module_path))
             try:
-                self._app = namespace[app_name]
-            except KeyError:
-                logger.error(f"'{app_name}' callable not found in module {module_path}")
+                return namespace[app_name]
+            except KeyError as exc:
+                msg = f"'{app_name}' callable not found in module {module_path}"
+                logger.error(msg)
+                raise AppStartupError(module_path, msg) from exc
         except Exception as exc:
+            if isinstance(exc, AppStartupError):
+                raise
             msg = f"failed to execute module {module_path}"
             logger.error(msg)
             raise AppStartupError(module_path, msg) from exc
@@ -134,3 +159,13 @@ class AppWrapper:
                 )
             cron_item.setall(cron.interval)
         crontab.write()
+
+
+def create_app_wrapper(app_dir: Path, /, *, reload: bool = False) -> AppWrapper:
+    config = AppConfig.load_from_dir(app_dir)
+    if config.app_type is AppType.STATIC:
+        return StaticAppWrapper(app_dir, config=config)
+    if config.app_type is AppType.ASGI:
+        return ASGIAppWrapper(app_dir, config=config, reload=reload)
+    msg = f"unknown app type: {config.app_type}"
+    raise ValueError(msg)
