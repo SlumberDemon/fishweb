@@ -1,16 +1,17 @@
-from __future__ import annotations
-
 import runpy
 import sys
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 from crontab import CronSlices, CronTab
-from loguru import logger
+from loguru import logger as global_logger
+from platformdirs import user_runtime_dir
 from starlette.staticfiles import StaticFiles
+from starlette.types import ASGIApp
 
 from fishweb.app.config import AppConfig, AppType
+from fishweb.logging import APP_LOG_FORMAT, app_logging_filter
 
 try:
     from watchdog.events import (
@@ -23,21 +24,17 @@ try:
     watchdog_available = True
 
     class ReloadHandler(FileSystemEventHandler):
-        def __init__(self, app_wrapper: ASGIAppWrapper, /) -> None:
+        def __init__(self, app_wrapper: "ASGIAppWrapper", /) -> None:
             self.app_wrapper = app_wrapper
 
         def on_any_event(self, event: FileSystemEvent) -> None:
             # BUG: Editing a file in VSCode on Windows can trigger 2 events.
             if event.event_type != EVENT_TYPE_CLOSED:
                 self.app_wrapper.reload()
+
 except ImportError:
     watchdog_available = False
     Observer = None
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-    from starlette.types import ASGIApp
 
 
 class AppStartupError(Exception):
@@ -49,9 +46,25 @@ class AppStartupError(Exception):
 class AppWrapper(ABC):
     def __init__(self, app_dir: Path, /, *, config: AppConfig) -> None:
         self.app_dir = app_dir
+        self.config = config
         self.name = app_dir.name
         self.created_at = time.time()
-        self.config = config
+        self.logger = global_logger.bind(app=self.name)
+        log_path = Path(user_runtime_dir("fishweb", appauthor=False)) / "logs" / self.name / f"{self.name}.log"
+        self.logger.add(
+            log_path,
+            format=APP_LOG_FORMAT,
+            rotation="10 MB",
+            retention="28 days",
+            filter=app_logging_filter(self.name),
+        )
+        self.logger.add(
+            sys.stderr,
+            format=APP_LOG_FORMAT,
+            backtrace=False,
+            diagnose=False,
+            filter=app_logging_filter(self.name),
+        )
 
     @property
     @abstractmethod
@@ -72,17 +85,17 @@ class ASGIAppWrapper(AppWrapper):
     def __init__(self, app_dir: Path, /, *, config: AppConfig, reload: bool = False) -> None:
         super().__init__(app_dir, config=config)
         self._load_crons()
-        self._app: ASGIApp | None = None
+        self._app = None
         if self.config.reload or reload:
             if watchdog_available and Observer:
                 self._handler = ReloadHandler(self)
                 self._observer = Observer()
                 self._observer.schedule(event_handler=self._handler, path=app_dir, recursive=True)
                 self._observer.start()
-                logger.debug(f"watching {app_dir} for changes")
+                self.logger.debug(f"watching {app_dir} for changes")
             else:
-                logger.warning("watchdog is not installed, live reloading is disabled")
-                logger.warning(
+                self.logger.warning("watchdog is not installed, live reloading is disabled")
+                self.logger.warning(
                     (
                         "install fishweb with the 'reload' extra to enable live reloading: "
                         "uv tool install fishweb[reload]"
@@ -96,13 +109,13 @@ class ASGIAppWrapper(AppWrapper):
         return self._app
 
     def reload(self) -> None:
-        logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
+        self.logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
         self.config = AppConfig.load_from_dir(self.app_dir)
         self._load_crons()
         self._app = self._try_import()
 
     def _try_import(self) -> ASGIApp:
-        logger.debug(f"loading app '{self.name}'")
+        self.logger.debug(f"loading app '{self.name}'")
         module, app_name = self.config.entry.split(":", maxsplit=1)
         module_path = self.app_dir.joinpath(module.replace(".", "/")).with_suffix(".py")
 
@@ -117,42 +130,42 @@ class ASGIAppWrapper(AppWrapper):
         ]
 
         try:
-            logger.debug(f"executing module {module_path}")
+            self.logger.debug(f"executing module {module_path}")
             namespace = runpy.run_path(str(module_path))
             try:
                 return namespace[app_name]
             except KeyError as exc:
                 msg = f"'{app_name}' callable not found in module {module_path}"
-                logger.error(msg)
+                self.logger.error(msg)  # noqa: TRY400
                 raise AppStartupError(module_path, msg) from exc
         except Exception as exc:
             if isinstance(exc, AppStartupError):
                 raise
             msg = f"failed to execute module {module_path}"
-            logger.error(msg)
+            self.logger.error(msg)  # noqa: TRY400
             raise AppStartupError(module_path, msg) from exc
         finally:
             sys.path = original_sys_path
 
     def _load_crons(self) -> None:
-        logger.debug(f"processing crons for app '{self.name}'")
+        self.logger.debug(f"processing crons for app '{self.name}'")
         crontab = CronTab(tabfile=str(self.app_dir / "fishweb.cron"))
         cron_ids = [cron.id for cron in self.config.crons]
 
         for cron_item in crontab:
             if cron_item.comment not in cron_ids:
-                logger.debug(f"removing cron job '{self.name}/{cron_item.comment}'")
+                self.logger.debug(f"removing cron job '{self.name}/{cron_item.comment}'")
                 crontab.remove(cron_item)
 
         for cron in self.config.crons:
             if not CronSlices.is_valid(cron.interval):
-                logger.error(f"invalid interval format for cron '{self.name}/{cron.id}': {cron.interval}")
+                self.logger.error(f"invalid interval format for cron '{self.name}/{cron.id}': {cron.interval}")
                 continue
             try:
                 cron_item = next(crontab.find_comment(cron.id))
-                logger.debug(f"updating cron job '{cron.id}'")
+                self.logger.debug(f"updating cron job '{cron.id}'")
             except StopIteration:
-                logger.debug(f"creating cron job '{cron.id}'")
+                self.logger.debug(f"creating cron job '{cron.id}'")
                 cron_item = crontab.new(
                     command=f"{sys.argv[0]} run {self.name} --job {cron.id}",
                     comment=cron.id,

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Annotated
 
+from loguru import logger
 from rich import print
 from typer import Option, Typer
 
@@ -45,7 +46,8 @@ def serve(
     """
     if uvicorn:
         app = create_fishweb_app(root_dir=root_dir, reload=reload)
-        uvicorn.run(app, host=host, port=port)
+        logger.info(f"fishweb server starting on http://{host}:{port}")
+        uvicorn.run(app, host=host, port=port, log_level="critical")
     else:
         print("Uvicorn is not installed.")
         print("Install fishweb with the 'serve' extra to use this command.")
