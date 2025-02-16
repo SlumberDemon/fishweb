@@ -8,7 +8,7 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
-from fishweb.app.wrapper import AppWrapper
+from fishweb.app.wrapper import AppWrapper, create_app_wrapper
 
 DEFAULT_ROOT_DIR = Path.home() / "fishweb"
 
@@ -24,7 +24,7 @@ class SubdomainMiddleware:
     def get_app_wrapper(self, subdomain: str) -> AppWrapper:
         wrapper = self.app_wrappers.get(subdomain)
         if not wrapper:
-            wrapper = AppWrapper(self.root_dir / subdomain, reload=self.reload)
+            wrapper = create_app_wrapper(self.root_dir / subdomain, reload=self.reload)
             self.app_wrappers[subdomain] = wrapper
         return wrapper
 
@@ -69,15 +69,17 @@ class SubdomainMiddleware:
         # )  # compression="zip"
 
         wrapper = self.get_app_wrapper(subdomain)
-        if not wrapper.app:
+        try:
+            return await wrapper.app(scope, receive, send)
+        except Exception:
             response = PlainTextResponse(
                 content=HTTPStatus.INTERNAL_SERVER_ERROR.phrase,
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
-            return await response(scope, receive, send)
-        return await wrapper.app(scope, receive, send)
+            await response(scope, receive, send)
+            raise
 
 
-def create_fishweb_app(*, root_dir: Path, reload: bool = False) -> Starlette:
+def create_fishweb_app(*, root_dir: Path, reload: bool = False) -> ASGIApp:
     middleware = (Middleware(SubdomainMiddleware, root_dir=root_dir, reload=reload),)
     return Starlette(middleware=middleware)
