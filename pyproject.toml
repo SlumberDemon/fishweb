@@ -46,7 +46,7 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["A", "D", "TD003"]
+ignore = ["A", "D", "G", "TD003"]
 
 [tool.pyright]
 venvPath = "."
