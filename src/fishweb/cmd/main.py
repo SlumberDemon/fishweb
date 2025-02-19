@@ -8,7 +8,7 @@ from fishweb.cmd.serve import serve_cli
 from fishweb.cmd.run import run_cli
 
 cli = typer.Typer(
-    help="Web apps like serverless",
+    help="Your personal web app manager",
     epilog="Use 'fishweb [command] --help' for more information about a command.",
     rich_markup_mode="markdown",
     no_args_is_help=True,

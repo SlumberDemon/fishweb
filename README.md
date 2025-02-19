@@ -10,25 +10,6 @@ Turn a new folder into a website without the need to start a development server 
 
 ## Documentation
 
-### Prerequisite
-
-- [UV](https://docs.astral.sh/uv/getting-started/installation/)
-
-### Installation
-
-```shell
-git clone https://github.com/slumberdemon/fishweb
-cd fishweb
-```
-
-#### UV (recommended)
-
-```shell
-uv tool install .
-```
-
-Now you should be able to run `fishweb` and see the help menu!
-
 View the full docs [here]()
 
 ## Inspirations

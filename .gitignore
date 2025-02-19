@@ -6,6 +6,11 @@ build
 .DS_Store
 .vscode
 
+# Vitepress
+node_modules/
+.vitepress/cache/
+cache/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
