@@ -5,7 +5,6 @@ import typer
 from fishweb import __version__
 from fishweb.cmd.logs import logs_cli
 from fishweb.cmd.serve import serve_cli
-from fishweb.cmd.run import run_cli
 
 cli = typer.Typer(
     help="Your personal web app manager",
@@ -16,7 +15,7 @@ cli = typer.Typer(
 
 cli.add_typer(serve_cli)
 cli.add_typer(logs_cli)
-cli.add_typer(run_cli)
+# cli.add_typer(run_cli) # (TODO)
 
 
 def version_callback(*, value: bool) -> None:
