@@ -1,6 +1,6 @@
 # Fishweb
 
-Fishweb is a simple cli that makes it easy to run Python ASAGI applications effortlessly. It may be thought of as the Python equivalent of [smallweb](https://github.com/pomdtr/smallweb).
+Fishweb is a web app manager that makes it easy to run Python ASAGI applications effortlessly.
 
 Map domains to folders in your filesystem.
 
