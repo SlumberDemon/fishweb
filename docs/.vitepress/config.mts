@@ -3,7 +3,7 @@ import { defineConfig } from "vitepress";
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "Fishweb",
-  description: "Web apps like serverless",
+  description: "Your personal web app manager",
   cleanUrls: true,
   head: [["link", { rel: "icon", href: "/favicon.png" }]],
   themeConfig: {
