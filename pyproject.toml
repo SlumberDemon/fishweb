@@ -24,6 +24,7 @@ fishweb = "fishweb.cmd:cli"
 [project.urls]
 "Bug Reports" = "https://github.com/slumberdemon/fishweb/issues"
 Source = "https://github.com/slumberdemon/fishweb"
+Documentation = "https://fishweb.sofa.sh"
 
 [dependency-groups]
 dev = []
