@@ -27,6 +27,10 @@ export default defineConfig({
         ],
       },
       {
+        text: "Hosting",
+        items: [{ text: "Cloudflared", link: "/content/hosting/cloudflared" }],
+      },
+      {
         text: "Reference",
         items: [
           { text: "App Config", link: "/content/reference/config" },
