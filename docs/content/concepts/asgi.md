@@ -1,7 +1,10 @@
-# ASGI App
+# ASGI Apps
 
-ASGI apps are written in python and need a `main.py` (or other if you [configure entry](/content/reference/config#entry)).
-If `reload` isn't enabled they won't update until fishweb is restarted.
+ASGI apps are written in Python and provide an ASGI callable called `app` in a `main.py` file.
+You can also [configure the entrypoint](/content/reference/config#entry) for different project structures.
+
+If the [live reload](/content/concepts/reload) feature is enabled, changes to the app's folder on disk will be reflected in real-time.
+Otherwise, changes will only be visible after restarting Fishweb.
 
 ## Basic
 
@@ -11,7 +14,8 @@ In Fishweb, it's possible to write simple ASGI apps without the need for a frame
 
 ```py [main.py]
 async def app(scope, receive, send):
-    assert scope["type"] == "http"
+    if scope["type"] != "http":
+        return
     await send(
         {
             "type": "http.response.start",
@@ -19,17 +23,23 @@ async def app(scope, receive, send):
             "headers": [[b"content-type", b"text/plain"]],
         },
     )
-    await send({"type": "http.response.body", "body": b"Hello from a pure ASGI app!"})
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"Hello from a pure ASGI app!",
+        },
+    )
 ```
 
 :::
 
-
 ## Framework
 
-However you can also use any [ASGI framework](https://www.uvicorn.org/#asgi-frameworks) in fishweb.
-Here is an example with [fastapi](https://pypi.org/project/fastapi/).
-When using a framework make sure you have it installed inside a [virtual environment](/content/concepts/venv).
+However you can also use any [ASGI framework](https://www.uvicorn.org/#asgi-frameworks) with Fishweb.
+Here is an example using [FastAPI](https://fastapi.tiangolo.com/).
+
+> [!IMPORTANT]
+> When using a framework make sure you have it installed inside a [virtual environment](/content/concepts/venv).
 
 ::: code-group
 

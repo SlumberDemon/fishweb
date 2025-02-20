@@ -1,20 +1,13 @@
-# Virtual environment
+# Virtual Environments
 
-In order to run a python app with a framework or additional libraries you need a virtual environment with them installed.
-The default virtual environment folder fishweb will check is `.venv` this can be changed in the [config](/content/reference/config#venv-path).
+To run a Python app with a framework or additional libraries you need a virtual environment with those dependencies installed.
 
-:::warning Notice
-The version of python in your virtual environment must be the same as the version which you installed fishweb with.
-:::
+The default virtual environment path Fishweb will check is `.venv`, relative to your app's directory.
+This can be changed in the [config](/content/reference/config#venv-path) file.
 
-## Create
+> [!IMPORTANT]
+> The version of Python used in the virtual environment **must match** the version you are using to run Fishweb.
 
-```sh
-uv venv [path]
-```
+## How it works
 
-To specifiy a python version use the `--python` flag. The default path is `.venv`.
-
-```sh
-python -m venv .venv
-```
+When loading your app, Fishweb will temporarily add the virtual environment to the Python `sys.path` list, so that your app can access it during start-up.

@@ -20,15 +20,14 @@ export default defineConfig({
       {
         text: "Concepts",
         items: [
-          { text: "ASGI App", link: "/content/concepts/asgi" },
-          { text: "Static App", link: "/content/concepts/static" },
-          { text: "Live editing", link: "/content/concepts/reload" },
-          { text: "Entrypoint", link: "/content/concepts/entry" },
-          { text: "Virtual environment", link: "/content/concepts/venv" },
+          { text: "ASGI Apps", link: "/content/concepts/asgi" },
+          { text: "Static Apps", link: "/content/concepts/static" },
+          { text: "Live Reloading", link: "/content/concepts/reload" },
+          { text: "Virtual Environments", link: "/content/concepts/venv" },
         ],
       },
       {
-        text: "References",
+        text: "Reference",
         items: [
           { text: "App Config", link: "/content/reference/config" },
           { text: "CLI", link: "/content/reference/cli" },
