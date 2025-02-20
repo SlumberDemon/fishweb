@@ -1,0 +1,52 @@
+[project]
+name = "fishweb"
+description = "Your personal web app manager"
+readme = "README.md"
+authors = [{ name = "SlumberDemon", email = "hi@sofa.sh" }]
+requires-python = ">=3.9"
+dependencies = [
+    "platformdirs~=4.3.6",
+    "starlette~=0.45.3",
+    "loguru~=0.7.3",
+    "typer~=0.15.1",
+    "pydantic-settings[yaml]~=2.7.1",
+]
+classifiers = ["Programming Language :: Python"]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+serve = ["uvicorn~=0.34.0"]
+reload = ["watchdog~=2.1.5"]
+
+[project.scripts]
+fishweb = "fishweb.cmd:cli"
+
+[project.urls]
+"Bug Reports" = "https://github.com/slumberdemon/fishweb/issues"
+Source = "https://github.com/slumberdemon/fishweb"
+
+[dependency-groups]
+dev = []
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-data = { fishweb = ["py.typed"] }
+
+[tool.setuptools.dynamic]
+version = { attr = "fishweb.__version__" }
+
+[tool.ruff]
+src = ["src"]
+line-length = 119
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["A", "D", "G", "TD003"]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
