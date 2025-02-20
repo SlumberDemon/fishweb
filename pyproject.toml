@@ -10,7 +10,6 @@ dependencies = [
     "loguru~=0.7.3",
     "typer~=0.15.1",
     "pydantic-settings[yaml]~=2.7.1",
-    "python-crontab>=3.2.0",
 ]
 classifiers = ["Programming Language :: Python"]
 dynamic = ["version"]
