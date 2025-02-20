@@ -4,7 +4,6 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from crontab import CronSlices, CronTab
 from loguru import logger as global_logger
 from platformdirs import user_runtime_dir
 from starlette.staticfiles import StaticFiles
@@ -84,7 +83,6 @@ class StaticAppWrapper(AppWrapper):
 class ASGIAppWrapper(AppWrapper):
     def __init__(self, app_dir: Path, /, *, config: AppConfig, reload: bool = False) -> None:
         super().__init__(app_dir, config=config)
-        self._load_crons()
         self._app = None
         if self.config.reload or reload:
             if watchdog_available and Observer:
@@ -111,7 +109,6 @@ class ASGIAppWrapper(AppWrapper):
     def reload(self) -> None:
         self.logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
         self.config = AppConfig.load_from_dir(self.app_dir)
-        self._load_crons()
         self._app = self._try_import()
 
     def _try_import(self) -> ASGIApp:
@@ -146,33 +143,6 @@ class ASGIAppWrapper(AppWrapper):
             raise AppStartupError(module_path, msg) from exc
         finally:
             sys.path = original_sys_path
-
-    def _load_crons(self) -> None:
-        if self.config.crons:
-            self.logger.debug(f"processing crons for app '{self.name}'")
-            crontab = CronTab(tabfile=str(self.app_dir / "fishweb.cron"))
-            cron_ids = [cron.id for cron in self.config.crons]
-
-            for cron_item in crontab:
-                if cron_item.comment not in cron_ids:
-                    self.logger.debug(f"removing cron job '{self.name}/{cron_item.comment}'")
-                    crontab.remove(cron_item)
-
-            for cron in self.config.crons:
-                if not CronSlices.is_valid(cron.interval):
-                    self.logger.error(f"invalid interval format for cron '{self.name}/{cron.id}': {cron.interval}")
-                    continue
-                try:
-                    cron_item = next(crontab.find_comment(cron.id))
-                    self.logger.debug(f"updating cron job '{cron.id}'")
-                except StopIteration:
-                    self.logger.debug(f"creating cron job '{cron.id}'")
-                    cron_item = crontab.new(
-                        command=f"{sys.argv[0]} run {self.name} --job {cron.id}",
-                        comment=cron.id,
-                    )
-                cron_item.setall(cron.interval)
-            crontab.write()
 
 
 def create_app_wrapper(app_dir: Path, /, *, reload: bool = False) -> AppWrapper:

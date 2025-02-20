@@ -15,7 +15,6 @@ cli = typer.Typer(
 
 cli.add_typer(serve_cli)
 cli.add_typer(logs_cli)
-# cli.add_typer(run_cli) # (TODO)
 
 
 def version_callback(*, value: bool) -> None:
