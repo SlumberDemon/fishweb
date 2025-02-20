@@ -1,6 +1,6 @@
 [project]
 name = "fishweb"
-description = "Web apps like serverless"
+description = "Your personal web app manager"
 readme = "README.md"
 authors = [{ name = "SlumberDemon", email = "hi@sofa.sh" }]
 requires-python = ">=3.9"
