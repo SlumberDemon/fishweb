@@ -10,7 +10,7 @@ Turn a new folder into a website without the need to start a development server 
 
 ## Documentation
 
-View the full docs [here]()
+View the full docs [here](https://fishweb.sofa.sh)
 
 ## Inspirations
 
