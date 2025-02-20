@@ -2,6 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+  base: "/",
   title: "Fishweb",
   description: "Your personal web app manager",
   cleanUrls: true,
