@@ -6,6 +6,10 @@
 
 ## Why Fishweb?
 
+Fishweb is a simple app web manager made to be small and easy to use.
+If you like iterating fast or have lots of ideas and projects, fishweb's folder-based routing and live reloading makes it hassle-free.
+Fishweb is personal in the sense that you don't have to depend on cloud providers to host your apps.
+
 ## Installation
 
 ### uv
