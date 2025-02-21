@@ -18,6 +18,22 @@ from fishweb.logging import GLOBAL_LOG_FORMAT, app_logging_filter
 DEFAULT_ROOT_DIR = Path.home() / "fishweb"
 
 
+def extract_subdomain(hostname: str, /) -> str:
+    """Attempt to extract the subdomain from a hostname, including nested subdomains.
+
+    The last two segments are removed, unless the last segment is `localhost`,
+    in which case only the last segment is removed.
+    If there is no subdomain, `www` is returned.
+    """
+    segments = hostname.split(".")
+    # TODO(lemonyte): Take into account other domain configurations, such as `domain.co.uk`.
+    # This should be done by using a user-configured domain that will be used to split the hostname.
+    root_levels = 2
+    if segments[-1] == "localhost":
+        root_levels = 1
+    return "www" if len(segments) == root_levels else ".".join(segments[:-root_levels])
+
+
 class SubdomainMiddleware:
     def __init__(self, app: ASGIApp, *, root_dir: Path, reload: bool = False) -> None:
         self.app = app
@@ -51,7 +67,7 @@ class SubdomainMiddleware:
 
         request = Request(scope)
         hostname = request.url.hostname or ""
-        subdomain = "www" if "." not in hostname else hostname.split(".")[0]
+        subdomain = extract_subdomain(hostname)
         app_dir = self.root_dir / subdomain
         self.logger.debug(f"handling request for subdomain '{subdomain}' on hostname '{hostname}'")
 
