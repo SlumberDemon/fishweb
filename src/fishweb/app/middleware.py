@@ -61,30 +61,21 @@ class SubdomainMiddleware:
             self.logger.warning(
                 f"subdomain '{subdomain}' ({app_dir}) is outside of the root directory {self.root_dir}",
             )
-            response = PlainTextResponse(
-                content=HTTPStatus.NOT_FOUND.phrase,
-                status_code=HTTPStatus.NOT_FOUND,
-            )
-            return await response(scope, receive, send)
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
         if not app_dir.exists():
             self.logger.warning(f"app '{subdomain}' not found")
             if subdomain == "www":
                 # TODO(lemonyte): Include a link to the docs perhaps?
                 response = PlainTextResponse(content="Fishweb is running!")
-            else:
-                response = PlainTextResponse(
-                    content=f"{subdomain} Not Found",
-                    status_code=HTTPStatus.NOT_FOUND,
-                )
-            return await response(scope, receive, send)
+                return await response(scope, receive, send)
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=f"{subdomain} Not Found")
 
-        response_info: MutableMapping = {
-            "response": {},
-        }
+        status_code = HTTPStatus.OK
 
         async def inner_send(message: MutableMapping) -> None:
             if message["type"] == "http.response.start":
-                response_info["response"] = message
+                nonlocal status_code
+                status_code = message["status"]
             await send(message)
 
         wrapper = self.get_app_wrapper(subdomain)
@@ -92,15 +83,15 @@ class SubdomainMiddleware:
             return await wrapper.app(scope, receive, inner_send)
         except Exception as exc:
             if isinstance(exc, HTTPException):
-                response_info["response"]["status"] = exc.status_code
+                status_code = exc.status_code
                 raise
-            response_info["response"]["status"] = HTTPStatus.INTERNAL_SERVER_ERROR
+            status_code = HTTPStatus.INTERNAL_SERVER_ERROR
             self.logger.exception("failed to handle request", app=subdomain)
             raise
         finally:
-            status_code = response_info.get("response", {}).get("status", HTTPStatus.OK)
+            full_request_path = request.url.path + ("?" + request.url.query if request.url.query else "")
             self.logger.info(
-                f"{request.method} {request.url.path} {status_code} {HTTPStatus(status_code).phrase}",
+                f"{request.method} {full_request_path} {status_code} {HTTPStatus(status_code).phrase}",
                 app=subdomain,
             )
 
