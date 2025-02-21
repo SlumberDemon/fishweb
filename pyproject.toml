@@ -27,7 +27,9 @@ Source = "https://github.com/slumberdemon/fishweb"
 Documentation = "https://fishweb.sofa.sh"
 
 [dependency-groups]
-dev = []
+dev = [
+    "pre-commit~=4.1.0",
+]
 
 [build-system]
 requires = ["setuptools>=61"]
@@ -43,6 +45,7 @@ version = { attr = "fishweb.__version__" }
 src = ["src"]
 line-length = 119
 target-version = "py39"
+extend-exclude = ["examples/**"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -51,3 +54,4 @@ ignore = ["A", "D", "G", "TD003"]
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+exclude = ["examples/**"]
