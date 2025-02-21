@@ -38,7 +38,7 @@ class SubdomainMiddleware:
             try:
                 wrapper = create_app_wrapper(self.root_dir / subdomain, reload=self.reload)
             except Exception:
-                self.logger.exception("failed to create app wrapper")
+                self.logger.exception(f"failed to create wrapper for app '{subdomain}'")
                 raise
             self.app_wrappers[subdomain] = wrapper
         return wrapper
