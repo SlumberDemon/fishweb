@@ -28,7 +28,7 @@ class AppConfig(BaseSettings):
         file_path = app_dir / "fishweb.yaml"
         if file_path.is_file():
             with file_path.open() as file:
-                return cls.model_validate(yaml.safe_load(file) or {})  # (TODO): handle incorrect yaml format
+                return cls.model_validate(yaml.safe_load(file) or {})
         return cls.model_validate({})
 
     @classmethod
