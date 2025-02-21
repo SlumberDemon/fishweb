@@ -1,11 +1,11 @@
 from pathlib import Path
 from typing import Annotated
 
-from platformdirs import user_cache_dir
 from rich import print
 from typer import Argument, Option, Typer
 
 from fishweb.app import DEFAULT_ROOT_DIR
+from fishweb.logging import DEFAULT_LOG_PATH
 
 logs_cli = Typer()
 
@@ -15,7 +15,7 @@ def get_app_list(root_dir: Path) -> list[str]:
 
 
 def get_app_logs(app: str) -> str:
-    log_path = Path(user_cache_dir("fishweb")).joinpath("domains", app, "logs.log")
+    log_path = DEFAULT_LOG_PATH / app / f"{app}.log"
     if log_path.exists():
         return log_path.read_text()
     return ""
