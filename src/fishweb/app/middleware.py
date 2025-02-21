@@ -5,7 +5,9 @@ from pathlib import Path
 
 from loguru import logger as global_logger
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
+from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -59,11 +61,7 @@ class SubdomainMiddleware:
             self.logger.warning(
                 f"subdomain '{subdomain}' ({app_dir}) is outside of the root directory {self.root_dir}",
             )
-            response = PlainTextResponse(
-                content=HTTPStatus.NOT_FOUND.phrase,
-                status_code=HTTPStatus.NOT_FOUND,
-            )
-            return await response(scope, receive, send)
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
         if not app_dir.exists():
             self.logger.warning(f"app '{subdomain}' not found")
             if subdomain == "www":
@@ -77,35 +75,37 @@ class SubdomainMiddleware:
                 )
             return await response(scope, receive, send)
 
-        response_info: MutableMapping = {
-            "response": {},
-        }
+        status_code = HTTPStatus.OK
 
         async def inner_send(message: MutableMapping) -> None:
             if message["type"] == "http.response.start":
-                response_info["response"] = message
+                nonlocal status_code
+                status_code = message["status"]
             await send(message)
 
         wrapper = self.get_app_wrapper(subdomain)
         try:
             return await wrapper.app(scope, receive, inner_send)
-        except Exception:
-            response_info["response"]["status"] = HTTPStatus.INTERNAL_SERVER_ERROR
-            response = PlainTextResponse(
-                content=HTTPStatus.INTERNAL_SERVER_ERROR.phrase,
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
-            await response(scope, receive, send)
+        except Exception as exc:
+            if isinstance(exc, HTTPException):
+                status_code = exc.status_code
+                raise
+            status_code = HTTPStatus.INTERNAL_SERVER_ERROR
             self.logger.exception("failed to handle request", app=subdomain)
             raise
         finally:
-            status_code = response_info.get("response", {}).get("status", HTTPStatus.OK)
+            full_request_path = request.url.path + ("?" + request.url.query if request.url.query else "")
             self.logger.info(
-                f"{request.method} {request.url.path} {status_code} {HTTPStatus(status_code).phrase}",
+                f"{request.method} {full_request_path} {status_code} {HTTPStatus(status_code).phrase}",
                 app=subdomain,
             )
 
 
 def create_fishweb_app(*, root_dir: Path, reload: bool = False) -> ASGIApp:
-    middleware = (Middleware(SubdomainMiddleware, root_dir=root_dir, reload=reload),)
+    middleware = (
+        # The ExceptionMiddleware must go before SubdomainMiddleware to properly handle exceptions
+        # re-raised by the SubdomainMiddleware.
+        Middleware(ExceptionMiddleware),
+        Middleware(SubdomainMiddleware, root_dir=root_dir, reload=reload),
+    )
     return Starlette(middleware=middleware)
