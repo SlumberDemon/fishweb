@@ -7,14 +7,13 @@ from http import HTTPStatus
 from pathlib import Path
 
 from loguru import logger as global_logger
-from platformdirs import user_runtime_dir
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from fishweb.app.config import AppConfig, AppType
-from fishweb.logging import APP_LOG_FORMAT, app_logging_filter
+from fishweb.logging import APP_LOG_FORMAT, DEFAULT_LOG_PATH, app_logging_filter
 
 try:
     from watchdog.events import (
@@ -60,7 +59,7 @@ class AppWrapper(ABC):
         self.name = app_dir.name
         self.created_at = time.time()
         self.logger = global_logger.bind(app=self.name)
-        log_path = Path(user_runtime_dir("fishweb", appauthor=False)) / "logs" / self.name / f"{self.name}.log"
+        log_path = DEFAULT_LOG_PATH / self.name / f"{self.name}.log"
         self.logger.add(
             log_path,
             format=APP_LOG_FORMAT,
