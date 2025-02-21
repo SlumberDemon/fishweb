@@ -5,7 +5,9 @@ from pathlib import Path
 
 from loguru import logger as global_logger
 from starlette.applications import Starlette
+from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
+from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -88,13 +90,11 @@ class SubdomainMiddleware:
         wrapper = self.get_app_wrapper(subdomain)
         try:
             return await wrapper.app(scope, receive, inner_send)
-        except Exception:
+        except Exception as exc:
+            if isinstance(exc, HTTPException):
+                response_info["response"]["status"] = exc.status_code
+                raise
             response_info["response"]["status"] = HTTPStatus.INTERNAL_SERVER_ERROR
-            response = PlainTextResponse(
-                content=HTTPStatus.INTERNAL_SERVER_ERROR.phrase,
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
-            await response(scope, receive, send)
             self.logger.exception("failed to handle request", app=subdomain)
             raise
         finally:
@@ -106,5 +106,10 @@ class SubdomainMiddleware:
 
 
 def create_fishweb_app(*, root_dir: Path, reload: bool = False) -> ASGIApp:
-    middleware = (Middleware(SubdomainMiddleware, root_dir=root_dir, reload=reload),)
+    middleware = (
+        # The ExceptionMiddleware must go before SubdomainMiddleware to properly handle exceptions
+        # re-raised by the SubdomainMiddleware.
+        Middleware(ExceptionMiddleware),
+        Middleware(SubdomainMiddleware, root_dir=root_dir, reload=reload),
+    )
     return Starlette(middleware=middleware)
