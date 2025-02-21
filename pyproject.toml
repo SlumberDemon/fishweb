@@ -3,6 +3,7 @@ name = "fishweb"
 description = "Your personal web app manager"
 readme = "README.md"
 authors = [{ name = "SlumberDemon", email = "hi@sofa.sh" }]
+maintainers = [{ name = "lemonyte", email = "hello@lemonyte.com" }]
 requires-python = ">=3.9"
 dependencies = [
     "platformdirs~=4.3.6",
@@ -27,9 +28,7 @@ Source = "https://github.com/slumberdemon/fishweb"
 Documentation = "https://fishweb.sofa.sh"
 
 [dependency-groups]
-dev = [
-    "pre-commit~=4.1.0",
-]
+dev = ["pre-commit~=4.1.0"]
 
 [build-system]
 requires = ["setuptools>=61"]
