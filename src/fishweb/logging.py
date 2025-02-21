@@ -19,6 +19,7 @@ APP_LOG_FORMAT = (
 # TODO(lemonyte): Make this configurable.
 DEFAULT_LOG_PATH = Path(user_runtime_dir("fishweb", appauthor=False)) / "logs"
 
+
 def app_logging_filter(app_name: str) -> Callable[["Record"], bool]:
     return lambda record: record["extra"].get("app") == app_name
 
