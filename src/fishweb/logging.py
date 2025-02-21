@@ -1,7 +1,9 @@
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 from loguru import logger
+from platformdirs import user_runtime_dir
 
 if TYPE_CHECKING:
     from loguru import Record
@@ -14,6 +16,8 @@ APP_LOG_FORMAT = (
     "<cyan>{time:YYYY-MM-DD HH:mm:ss}</cyan> | <level>{level: <8}</level> |"
     " <bold><cyan>{extra[app]: <16}</cyan></bold> | {message}"
 )
+# TODO(lemonyte): Make this configurable.
+DEFAULT_LOG_PATH = Path(user_runtime_dir("fishweb", appauthor=False)) / "logs"
 
 def app_logging_filter(app_name: str) -> Callable[["Record"], bool]:
     return lambda record: record["extra"].get("app") == app_name
