@@ -15,6 +15,7 @@ APP_LOG_FORMAT = (
     " <bold><cyan>{extra[app]: <16}</cyan></bold> | {message}"
 )
 
+
 def app_logging_filter(app_name: str) -> Callable[["Record"], bool]:
     return lambda record: record["extra"].get("app") == app_name
 
