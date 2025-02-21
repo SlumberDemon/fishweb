@@ -1,12 +1,16 @@
+import re
 import runpy
 import sys
 import time
 from abc import ABC, abstractmethod
+from http import HTTPStatus
 from pathlib import Path
 
 from loguru import logger as global_logger
+from starlette.exceptions import HTTPException
+from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
-from starlette.types import ASGIApp
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from fishweb.app.config import AppConfig, AppType
 from fishweb.logging import APP_LOG_FORMAT, DEFAULT_LOG_PATH, app_logging_filter
@@ -33,6 +37,13 @@ try:
 except ImportError:
     watchdog_available = False
     Observer = None
+
+BLOCKED_PATH_PATTERNS = {
+    re.compile(r"/?\.env.*", re.IGNORECASE),
+    re.compile(r"/?fishweb\.ya?ml/?", re.IGNORECASE),
+    re.compile(r"/?__pycache__/.*", re.IGNORECASE),
+    re.compile(r"/?\.venv.*", re.IGNORECASE),
+}
 
 
 class AppStartupError(Exception):
@@ -72,7 +83,13 @@ class AppWrapper(ABC):
 class StaticAppWrapper(AppWrapper):
     def __init__(self, app_dir: Path, /, *, config: AppConfig) -> None:
         super().__init__(app_dir, config=config)
-        self._app = StaticFiles(directory=app_dir, html=True)
+        self._staticfiles = StaticFiles(directory=app_dir, html=True)
+
+    async def _app(self, scope: Scope, receive: Receive, send: Send) -> None:
+        request = Request(scope)
+        if any(re.fullmatch(pattern, request.url.path) for pattern in BLOCKED_PATH_PATTERNS):
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
+        return await self._staticfiles(scope, receive, send)
 
     @property
     def app(self) -> ASGIApp:
