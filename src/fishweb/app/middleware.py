@@ -67,8 +67,9 @@ class SubdomainMiddleware:
         if not app_dir.exists():
             self.logger.warning(f"app '{subdomain}' not found")
             if subdomain == "www":
-                # TODO(lemonyte): Include a link to the docs perhaps?
-                response = PlainTextResponse(content="Fishweb is running!")
+                response = PlainTextResponse(
+                    content="Fishweb is running! Check out https://fishweb.sofa.sh for next steps.",
+                )
             else:
                 response = PlainTextResponse(
                     content=f"{subdomain} Not Found",
