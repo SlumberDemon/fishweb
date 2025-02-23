@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource
 
 class AppType(Enum):
     ASGI = "asgi"
+    WSGI = "wsgi"
     STATIC = "static"
 
 
