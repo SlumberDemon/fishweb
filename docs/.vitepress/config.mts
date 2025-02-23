@@ -53,6 +53,7 @@ export default defineConfig({
       },
     },
     socialLinks: [
+      { icon: "bluesky", link: "https://bsky.app/profile/fishweb.sofa.sh" },
       { icon: "github", link: "https://github.com/slumberdemon/fishweb" },
     ],
   },
