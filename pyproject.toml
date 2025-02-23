@@ -18,6 +18,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 serve = ["uvicorn~=0.34.0"]
 reload = ["watchdog~=2.1.5"]
+wsgi = ["asgiref~=3.8.1"]
 
 [project.scripts]
 fishweb = "fishweb.cmd:cli"

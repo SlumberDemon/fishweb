@@ -24,8 +24,8 @@ features:
     title: Easy config
     details: Configure your app however you want
   - icon: 🐍
-    title: ASGI compatible
-    details: Use your favourite python ASGI framework
+    title: ASGI & WSGI compatible
+    details: Use your favourite Python ASGI & WSGI frameworks
   - icon: 🌈
     title: Developer dream
     details: Test and prototype your apps faster than ever
