@@ -25,7 +25,7 @@ def extract_subdomain(hostname: str, /) -> str:
     If there is no subdomain, `www` is returned.
     """
     segments = hostname.split(".")
-    # TODO(lemonyte): Take into account other domain configurations, such as `domain.co.uk`.
+    # TODO(lemonyte): #24 Take into account other domain configurations, such as `domain.co.uk`.
     # This should be done by using a user-configured domain that will be used to split the hostname.
     root_levels = 2
     if segments[-1] == "localhost":

@@ -16,7 +16,7 @@ APP_LOG_FORMAT = (
     "<cyan>{time:YYYY-MM-DD HH:mm:ss}</cyan> | <level>{level: <8}</level> |"
     " <bold><cyan>{extra[app]: <16}</cyan></bold> | {message}"
 )
-# TODO(lemonyte): Make this configurable.
+# TODO(lemonyte): #18 Make this configurable.
 DEFAULT_LOG_PATH = Path(user_runtime_dir("fishweb", appauthor=False)) / "logs"
 
 
