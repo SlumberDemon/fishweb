@@ -1,5 +1,6 @@
 async def app(scope, receive, send):
-    assert scope["type"] == "http"
+    if scope["type"] != "http":
+        return
     await send(
         {
             "type": "http.response.start",
@@ -7,4 +8,9 @@ async def app(scope, receive, send):
             "headers": [[b"content-type", b"text/plain"]],
         },
     )
-    await send({"type": "http.response.body", "body": b"Hello from a pure ASGI app!"})
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"Hello from a pure ASGI app!",
+        },
+    )
