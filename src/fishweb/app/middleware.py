@@ -1,5 +1,4 @@
 import sys
-from collections.abc import MutableMapping
 from http import HTTPStatus
 from pathlib import Path
 
@@ -10,7 +9,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from fishweb.app.wrapper import AppWrapper, create_app_wrapper
 from fishweb.logging import GLOBAL_LOG_FORMAT, app_logging_filter
@@ -93,7 +92,7 @@ class SubdomainMiddleware:
 
         status_code = HTTPStatus.OK
 
-        async def inner_send(message: MutableMapping) -> None:
+        async def inner_send(message: Message) -> None:
             if message["type"] == "http.response.start":
                 nonlocal status_code
                 status_code = message["status"]
