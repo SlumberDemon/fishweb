@@ -38,6 +38,12 @@ except ImportError:
     watchdog_available = False
     Observer = None
 
+try:
+    from asgiref.wsgi import WsgiToAsgi
+except ImportError:
+    WsgiToAsgi = None
+
+
 BLOCKED_PATH_PATTERNS = {
     re.compile(r"/?\.env.*", re.IGNORECASE),
     re.compile(r"/?fishweb\.ya?ml/?", re.IGNORECASE),
@@ -161,11 +167,21 @@ class ASGIAppWrapper(AppWrapper):
             sys.path = original_sys_path
 
 
+class WsgiAppWrapper(ASGIAppWrapper):
+    def _try_import(self) -> ASGIApp:
+        if WsgiToAsgi is None:
+            msg = "asgiref is not installed, WSGI apps are not supported, reinstall fishweb as 'fishweb[wsgi]'"
+            raise AppStartupError(self.app_dir, msg)
+        return WsgiToAsgi(super()._try_import())
+
+
 def create_app_wrapper(app_dir: Path, /, *, reload: bool = False) -> AppWrapper:
     config = AppConfig.load_from_dir(app_dir)
     if config.app_type is AppType.STATIC:
         return StaticAppWrapper(app_dir, config=config)
     if config.app_type is AppType.ASGI:
         return ASGIAppWrapper(app_dir, config=config, reload=reload)
+    if config.app_type is AppType.WSGI:
+        return WsgiAppWrapper(app_dir, config=config, reload=reload)
     msg = f"unknown app type: {config.app_type}"
     raise ValueError(msg)
