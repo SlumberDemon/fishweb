@@ -57,5 +57,6 @@ pip install .
 
 - `serve`: Installs [uvicorn](https://www.uvicorn.org/) as a built-in ASGI server to enable the `fishweb serve` comand
 - `reload`: Installs [watchdog](https://python-watchdog.readthedocs.io/en/stable/index.html) to enable live reloading of apps
+- `wsgi`: Installs [asgiref](https://github.com/django/asgiref) for WSGI compatibility
 
-You can install both extras by using `fishweb[serve,reload]` as the package name.
+You can install all extras by using `fishweb[serve,reload,wsgi]` as the package name.

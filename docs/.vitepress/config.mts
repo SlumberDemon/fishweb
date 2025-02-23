@@ -22,6 +22,7 @@ export default defineConfig({
         text: "Concepts",
         items: [
           { text: "ASGI Apps", link: "/content/concepts/asgi" },
+          { text: "WSGI Apps", link: "/content/concepts/wsgi" },
           { text: "Static Apps", link: "/content/concepts/static" },
           { text: "Live Reloading", link: "/content/concepts/reload" },
           { text: "Virtual Environments", link: "/content/concepts/venv" },

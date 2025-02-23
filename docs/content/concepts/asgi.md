@@ -1,6 +1,6 @@
 # ASGI Apps
 
-ASGI apps are written in Python and provide an ASGI callable called `app` in a `main.py` file.
+[ASGI](https://asgi.readthedocs.io/en/latest/index.html) apps are written in Python and provide an ASGI callable called `app` in a `main.py` file.
 You can also [configure the entrypoint](/content/reference/config#entry) for different project structures.
 
 If the [live reload](/content/concepts/reload) feature is enabled, changes to the app's folder on disk will be reflected in real-time.
