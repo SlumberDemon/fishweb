@@ -1,3 +1,4 @@
+import os
 import re
 import runpy
 import sys
@@ -12,6 +13,7 @@ from starlette.requests import Request
 from starlette.staticfiles import StaticFiles
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from fishweb import __version__
 from fishweb.app.config import AppConfig, AppType
 from fishweb.logging import APP_LOG_FORMAT, DEFAULT_LOG_PATH, app_logging_filter
 
@@ -147,6 +149,10 @@ class AsgiAppWrapper(AppWrapper):
             str(venv_path / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"),
             *sys.path,
         ]
+
+        os.environ["FISHWEB_DATA_DIR"] = str(self.app_dir / "data")
+        os.environ["FISHWEB_APP_NAME"] = str(self.name)
+        os.environ["FISHWEB_VERSION"] = str(__version__)
 
         try:
             self.logger.debug(f"executing module {module_path}")

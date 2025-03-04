@@ -26,6 +26,8 @@ export default defineConfig({
           { text: "Static Apps", link: "/content/concepts/static" },
           { text: "Live Reloading", link: "/content/concepts/reload" },
           { text: "Virtual Environments", link: "/content/concepts/venv" },
+          { text: "Environment Variables", link: "/content/concepts/env" },
+          { text: "Data Storage", link: "/content/concepts/arowana" },
         ],
       },
       {
