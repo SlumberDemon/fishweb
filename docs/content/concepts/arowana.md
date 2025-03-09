@@ -58,24 +58,32 @@ Args:
   - key: The key to store the data under. If None, a new key will be generated
 
 Returns:
-  - Item: Added item details
+  - dict: Added item details
 
 ```py
 # Key is automatically generated
+# Returns: {"name": "sofa", "price": 20, "key": "generated_key"}
 base.put({"name": "sofa", "price": 20})
 
 # Set key as "one"
+# Returns: {"name": "sofa", "price": 20, "key": "one"}
 base.put({"name": "sofa", "price": 20}, "one")
 
 # The key can also be included in the object
+# Returns: {"name": "sofa", "price": 20, "key": "test"}
 base.put({"name": "sofa", "price": 20, "key": "test"})
 
-# Supports multipe types
+# Supports multiple types
+# Returns: {"key": "generated_key", "value": "hello, worlds"}
 base.put("hello, worlds")
+
+# Returns: {"key": "generated_key", "value": 7}
 base.put(7)
+
+# Returns: {"key": "generated_key", "value": true}
 base.put(True)
 
-# "success" is the value and "smart_work" is the key.
+# Returns: {"key": "name", "value": "sofa"}
 base.put(data="sofa", key="name")
 ```
 
@@ -87,9 +95,14 @@ Args:
   - items: Items to add
 
 Returns:
-  - Items: Added item details
+  - dict: Added items details
 
 ```py
+# Returns: {"items": [
+#   {"name": "sofa", "hometown": "Sofa islands", "key": "slumberdemon"},
+#   {"key": "generated_key", "value": ["nemo", "arowana", "fishweb", "clownfish"]},
+#   {"key": "generated_key", "value": "goldfish"}
+# ]}
 base.puts(
     [
         {"name": "sofa", "hometown": "Sofa islands", "key": "slumberdemon"},  # Key provided.
@@ -98,7 +111,6 @@ base.puts(
     ],
 )
 ```
-
 
 ### `insert`
 
@@ -109,13 +121,15 @@ Args:
   - key: The key to store the data under. If None, a new key will be generated
 
 Returns:
-  - Item: Added item details
+  - dict: Added item details
 
 ```py
 # Will succeed and auto generate a key
+# Returns: {"key": "generated_key", "value": "hello, world"}
 base.insert("hello, world")
 
 # Will succeed with key "greeting1"
+# Returns: {"message": "hello, world", "key": "greeting1"}
 base.insert({"message": "hello, world"}, "greeting1")
 
 # Will raise an error as key "greeting1" already exists
@@ -130,10 +144,16 @@ Args:
   - key: key of the item to retrieve
 
 Returns:
-  - Item: Retrieved item details
+  - dict: Retrieved item details
 
 ```py
-base.get("sofa")
+# If the stored item is a dictionary, returns the dict with a "key" field:
+# {"name": "sofa", "price": 20, "key": "one"}
+base.get("one")
+
+# If the stored item is a non-dict value, returns:
+# {"key": "my_key", "value": "stored_value"}
+base.get("my_key")
 ```
 
 ### `delete`
@@ -172,7 +192,15 @@ base.update(
 
 Get all items in base
 
+Returns:
+  - dict: All items
+
 ```py
+# Returns: {"items": [
+#   {"name": "sofa", "price": 20, "key": "one"},
+#   {"key": "my_string", "value": "hello world"},
+#   ...
+# ]}
 base.all()
 ```
 
