@@ -14,7 +14,7 @@ Fishweb is personal in the sense that you don't have to depend on cloud provider
 
 ### uv
 
-uv is the **recommended** way to install Fishweb.
+[uv](https://docs.astral.sh/uv/) is the **recommended** way to install Fishweb.
 You can install Fishweb with [uvicorn](https://www.uvicorn.org/) as a built-in server, or if you want to run your own ASGI server you can install it without extra dependencies.
 
 ::: code-group
