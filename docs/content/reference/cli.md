@@ -49,6 +49,6 @@ fishweb logs [OPTIONS] [APP]
 ```
 --all   -a            show logs for all apps
 --root  -r      PATH  root directory to search for apps
-                      [default: /Users/sofa/fishweb]
+                      [default: fishweb]
 --help                Show this message and exit.
 ```
