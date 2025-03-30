@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from rich import print
-from typer import Argument, Option, Typer
+from typer import Argument, Option, Typer, Context
 
 from fishweb.app import DEFAULT_ROOT_DIR
 from fishweb.logging import DEFAULT_LOG_PATH
@@ -21,8 +21,9 @@ def get_app_logs(app: str) -> str:
     return ""
 
 
-@logs_cli.command(no_args_is_help=True)
+@logs_cli.command()
 def logs(
+    ctx: Context,
     app: Annotated[str, Argument(autocompletion=lambda: get_app_list(DEFAULT_ROOT_DIR))] = "",
     *,
     all: Annotated[bool, Option("--all", "-a", help="show logs for all apps")] = False,
@@ -31,10 +32,17 @@ def logs(
     """
     View app logs
     """
-    if all:
+    cwd = Path.cwd()
+
+    if cwd.parent == DEFAULT_ROOT_DIR:
+        logs = get_app_logs(cwd.name)
+        print(logs)
+    elif app:
+        logs = get_app_logs(app)
+        print(logs)
+    elif all:
         for found_app in get_app_list(root_dir):
             logs = get_app_logs(found_app)
             print(f"[reverse blue]{found_app} logs[/reverse blue]\n{logs}")
     else:
-        logs = get_app_logs(app)
-        print(logs)
+        ctx.get_help()
