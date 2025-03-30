@@ -34,11 +34,11 @@ def logs(
     """
     cwd = Path.cwd()
 
-    if cwd.parent == DEFAULT_ROOT_DIR:
-        logs = get_app_logs(cwd.name)
-        print(logs)
-    elif app:
+    if app:
         logs = get_app_logs(app)
+        print(logs)
+    elif cwd.parent == DEFAULT_ROOT_DIR:
+        logs = get_app_logs(cwd.name)
         print(logs)
     elif all:
         for found_app in get_app_list(root_dir):
