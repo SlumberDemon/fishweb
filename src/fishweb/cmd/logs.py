@@ -30,7 +30,7 @@ def logs(
     root_dir: Annotated[Path, Option("--root", "-r", help="root directory to search for apps")] = DEFAULT_ROOT_DIR,
 ) -> None:
     """
-    View app logs
+    View app log
     """
     cwd = Path.cwd()
 

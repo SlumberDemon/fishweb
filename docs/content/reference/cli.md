@@ -35,3 +35,20 @@ fishweb serve [flags]
 --reload  -r               enable live reloading
 --help                     Show this message and exit.
 ```
+
+## logs
+
+View app log
+
+```
+fishweb logs [OPTIONS] [APP]
+```
+
+### Options
+
+```
+--all   -a            show logs for all apps
+--root  -r      PATH  root directory to search for apps
+                      [default: /Users/sofa/fishweb]
+--help                Show this message and exit.
+```
