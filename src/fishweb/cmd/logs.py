@@ -37,12 +37,12 @@ def logs(
     if app:
         logs = get_app_logs(app)
         print(logs)
-    elif cwd.parent == DEFAULT_ROOT_DIR:
-        logs = get_app_logs(cwd.name)
-        print(logs)
     elif all:
         for found_app in get_app_list(root_dir):
             logs = get_app_logs(found_app)
             print(f"[reverse blue]{found_app} logs[/reverse blue]\n{logs}")
+    elif cwd.parent == DEFAULT_ROOT_DIR:
+        logs = get_app_logs(cwd.name)
+        print(logs)
     else:
         ctx.get_help()
