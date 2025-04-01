@@ -27,7 +27,7 @@ When using arowana in a fishweb app it will get the data directory from `FISHWEB
 
 ::: code-group
 
-```py [fishweb.py]
+```py [fishweb]
 # Fishweb example
 from arowana import Base, Drive
 
@@ -35,7 +35,7 @@ drive = Drive("goldfish")
 base = Base("clownfish")
 ```
 
-```py [standalone.py]
+```py [standalone]
 # Standalone example
 from arowana import Arowana
 

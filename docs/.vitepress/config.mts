@@ -27,9 +27,13 @@ export default defineConfig({
           { text: "Live Reloading", link: "/content/concepts/reload" },
           { text: "Virtual Environments", link: "/content/concepts/venv" },
           { text: "Environment Variables", link: "/content/concepts/env" },
-          { text: "Data Storage", link: "/content/concepts/arowana" },
         ],
       },
+      {
+        text: "Integrations",
+        items: [{ text: "Arowana", link: "/content/integrations/arowana" }],
+      },
+
       {
         text: "Hosting",
         items: [{ text: "Cloudflared", link: "/content/hosting/cloudflared" }],
