@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from rich import print
-from typer import Argument, Option, Typer, Context
+from typer import Argument, Context, Option, Typer
 
 from fishweb.app import DEFAULT_ROOT_DIR
 from fishweb.logging import DEFAULT_LOG_PATH

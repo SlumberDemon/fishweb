@@ -17,11 +17,7 @@ from fishweb.app.config import AppConfig, AppType
 from fishweb.logging import APP_LOG_FORMAT, DEFAULT_LOG_PATH, app_logging_filter
 
 try:
-    from watchdog.events import (
-        EVENT_TYPE_CLOSED,
-        FileSystemEvent,
-        FileSystemEventHandler,
-    )
+    from watchdog.events import EVENT_TYPE_CLOSED, FileSystemEvent, FileSystemEventHandler
     from watchdog.observers import Observer
 
     watchdog_available = True
