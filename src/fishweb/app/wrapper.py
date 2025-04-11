@@ -136,6 +136,8 @@ class AsgiAppWrapper(AppWrapper):
         module_path = self.app_dir.joinpath(module.replace(".", "/")).with_suffix(".py")
 
         original_sys_path = sys.path.copy()
+        original_modules = set(sys.modules.keys())
+
         venv_path = self.app_dir / self.config.venv_path
         sys.path = [
             str(self.app_dir),
@@ -164,6 +166,9 @@ class AsgiAppWrapper(AppWrapper):
             self.logger.error(msg)  # noqa: TRY400
             raise AppStartupError(module_path, msg) from exc
         finally:
+            for module_name in list(sys.modules.keys()):
+                if module_name not in original_modules:
+                    del sys.modules[module_name]
             sys.path = original_sys_path
 
 
