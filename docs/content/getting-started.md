@@ -57,6 +57,12 @@ pip install .
 
 - `serve`: Installs [uvicorn](https://www.uvicorn.org/) as a built-in ASGI server to enable the `fishweb serve` comand
 - `reload`: Installs [watchdog](https://python-watchdog.readthedocs.io/en/stable/index.html) to enable live reloading of apps
-- `wsgi`: Installs [asgiref](https://github.com/django/asgiref) for WSGI compatibility
 
-You can install all extras by using `fishweb[serve,reload,wsgi]` as the package name.
+You can install all extras by using `fishweb[serve,reload]` as the package name.
+
+## Your first app
+
+Fishweb defaults to serving your folder as a [Static app](/content/concepts/static).
+For more advanced frameworks and languages you can create a [Process app](/content/concepts/process).
+
+Check out some example apps [here](https://github.com/SlumberDemon/fishweb/tree/main/examples)

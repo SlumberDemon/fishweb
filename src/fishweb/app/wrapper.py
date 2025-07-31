@@ -1,6 +1,4 @@
-import os
 import re
-import runpy
 import sys
 import time
 from abc import ABC, abstractmethod
@@ -15,35 +13,6 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 from fishweb.app.config import AppConfig, AppType
 from fishweb.logging import APP_LOG_FORMAT, DEFAULT_LOG_PATH, app_logging_filter
-
-try:
-    from watchdog.events import (
-        EVENT_TYPE_CLOSED,
-        FileSystemEvent,
-        FileSystemEventHandler,
-    )
-    from watchdog.observers import Observer
-
-    watchdog_available = True
-
-    class ReloadHandler(FileSystemEventHandler):
-        def __init__(self, app_wrapper: "AsgiAppWrapper", /) -> None:
-            self.app_wrapper = app_wrapper
-
-        def on_any_event(self, event: FileSystemEvent) -> None:
-            # BUG: Editing a file in VSCode on Windows can trigger 2 events.
-            if event.event_type != EVENT_TYPE_CLOSED:
-                self.app_wrapper.reload()
-
-except ImportError:
-    watchdog_available = False
-    Observer = None
-
-try:
-    from asgiref.wsgi import WsgiToAsgi
-except ImportError:
-    WsgiToAsgi = None
-
 
 BLOCKED_PATH_PATTERNS = {
     re.compile(r"/?\.env.*", re.IGNORECASE),
@@ -103,89 +72,9 @@ class StaticAppWrapper(AppWrapper):
         return self._app
 
 
-class AsgiAppWrapper(AppWrapper):
-    def __init__(self, app_dir: Path, /, *, config: AppConfig, reload: bool = False) -> None:
-        super().__init__(app_dir, config=config)
-        self._app = None
-        if self.config.reload or reload:
-            if watchdog_available and Observer:
-                self._handler = ReloadHandler(self)
-                self._observer = Observer()
-                self._observer.schedule(event_handler=self._handler, path=app_dir, recursive=True)
-                self._observer.start()
-                self.logger.debug(f"watching {app_dir} for changes")
-            else:
-                self.logger.warning("watchdog is not installed, live reloading is disabled")
-                self.logger.warning(
-                    (
-                        "install fishweb with the 'reload' extra to enable live reloading: "
-                        "uv tool install fishweb[reload]"
-                    ),
-                )
-
-    @property
-    def app(self) -> ASGIApp:
-        if self._app is None:
-            self._app = self._try_import()
-        return self._app
-
-    def reload(self) -> None:
-        self.logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
-        self.config = AppConfig.load_from_dir(self.app_dir)
-        self._app = self._try_import()
-
-    def _try_import(self) -> ASGIApp:
-        self.logger.debug(f"loading app '{self.name}'")
-        module, app_name = self.config.entry.split(":", maxsplit=1)
-        module_path = self.app_dir.joinpath(module.replace(".", "/")).with_suffix(".py")
-
-        original_sys_path = sys.path.copy()
-        venv_path = self.app_dir / self.config.venv_path
-        sys.path = [
-            str(self.app_dir),
-            str(venv_path),
-            str(venv_path / "lib" / "site-packages"),
-            str(venv_path / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages"),
-            *sys.path,
-        ]
-
-        os.environ["FISHWEB_DATA_DIR"] = str(self.app_dir / "data")
-        os.environ["FISHWEB_APP_NAME"] = str(self.name)
-
-        try:
-            self.logger.debug(f"executing module {module_path}")
-            namespace = runpy.run_path(str(module_path))
-            try:
-                return namespace[app_name]
-            except KeyError as exc:
-                msg = f"'{app_name}' callable not found in module {module_path}"
-                self.logger.error(msg)  # noqa: TRY400
-                raise AppStartupError(module_path, msg) from exc
-        except Exception as exc:
-            if isinstance(exc, AppStartupError):
-                raise
-            msg = f"failed to execute module {module_path}"
-            self.logger.error(msg)  # noqa: TRY400
-            raise AppStartupError(module_path, msg) from exc
-        finally:
-            sys.path = original_sys_path
-
-
-class WsgiAppWrapper(AsgiAppWrapper):
-    def _try_import(self) -> ASGIApp:
-        if WsgiToAsgi is None:
-            msg = "asgiref is not installed, WSGI apps are not supported, reinstall fishweb as 'fishweb[wsgi]'"
-            raise AppStartupError(self.app_dir, msg)
-        return WsgiToAsgi(super()._try_import())
-
-
-def create_app_wrapper(app_dir: Path, /, *, reload: bool = False) -> AppWrapper:
+def create_app_wrapper(app_dir: Path) -> AppWrapper:
     config = AppConfig.load_from_dir(app_dir)
     if config.app_type is AppType.STATIC:
         return StaticAppWrapper(app_dir, config=config)
-    if config.app_type is AppType.ASGI:
-        return AsgiAppWrapper(app_dir, config=config, reload=reload)
-    if config.app_type is AppType.WSGI:
-        return WsgiAppWrapper(app_dir, config=config, reload=reload)
     msg = f"unknown app type: {config.app_type}"
     raise ValueError(msg)

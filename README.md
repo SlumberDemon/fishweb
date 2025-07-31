@@ -1,6 +1,6 @@
 # Fishweb
 
-Fishweb is a web app manager that makes running static & Python ASGI/WSGI apps effortless.
+Fishweb is a web app manager that makes running small apps effortless.
 
 Map domains to folders on your filesystem.
 
@@ -14,12 +14,10 @@ You can view the examples by cloning the repo, running the following commands in
 
 ```shell
 uv sync --all-extras
-fishweb serve --root examples
+fishweb serve --dir examples
 ```
 
-- <http://asgi.localhost:8888> - A simple ASGI callable example
 - <http://fastapi.localhost:8888> - A FastAPI example
-- <http://flask.localhost:8888> - A Flask example
 - <http://static.localhost:8888> - A static website example
 - <http://nested.sub.localhost:8888> - A nested subdomain example
 

@@ -29,7 +29,7 @@ def serve(
     ] = 8888,
     root_dir: Annotated[
         Path,
-        Option("--root", "-r", help="root directory to serve apps from"),
+        Option("--dir", "-d", help="root directory to serve apps from"),
     ] = DEFAULT_ROOT_DIR,
     reload: Annotated[
         bool,

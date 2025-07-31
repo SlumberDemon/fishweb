@@ -2,15 +2,20 @@ import sys
 from http import HTTPStatus
 from pathlib import Path
 
+import httpx
+import setproctitle
+from httpx_retries import Retry, RetryTransport
 from loguru import logger as global_logger
 from starlette.applications import Starlette
 from starlette.exceptions import HTTPException
 from starlette.middleware import Middleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 from starlette.requests import Request
-from starlette.responses import PlainTextResponse
+from starlette.responses import PlainTextResponse, Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from fishweb.app.config import AppConfig, AppType
+from fishweb.app.process import AppProcess, create_app_process
 from fishweb.app.wrapper import AppWrapper, create_app_wrapper
 from fishweb.logging import GLOBAL_LOG_FORMAT, app_logging_filter
 
@@ -39,6 +44,7 @@ class SubdomainMiddleware:
         self.root_dir = root_dir
         self.reload = reload
         self.app_wrappers: dict[str, AppWrapper] = {}
+        self.app_processes: dict[str, AppProcess] = {}
         self.logger = global_logger.bind(app="<middleware>")
         self.logger.add(
             sys.stderr,
@@ -47,20 +53,32 @@ class SubdomainMiddleware:
             diagnose=False,
             filter=app_logging_filter("<middleware>"),
         )
+        setproctitle.setproctitle("fishweb")
         self.logger.debug(f"initialized middleware serving from {root_dir}")
+
+    def get_app_process(self, subdomain: str) -> AppProcess:
+        process = self.app_processes.get(subdomain)
+        if not process:
+            try:
+                process = create_app_process(self.root_dir / subdomain, reload=self.reload)
+            except Exception:
+                self.logger.exception(f"failed to create process for app '{subdomain}'")
+                raise
+            self.app_processes[subdomain] = process
+        return process
 
     def get_app_wrapper(self, subdomain: str) -> AppWrapper:
         wrapper = self.app_wrappers.get(subdomain)
         if not wrapper:
             try:
-                wrapper = create_app_wrapper(self.root_dir / subdomain, reload=self.reload)
+                wrapper = create_app_wrapper(self.root_dir / subdomain)
             except Exception:
                 self.logger.exception(f"failed to create wrapper for app '{subdomain}'")
                 raise
             self.app_wrappers[subdomain] = wrapper
         return wrapper
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:  # noqa:  PLR0912, PLR0915, C901
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
@@ -98,9 +116,48 @@ class SubdomainMiddleware:
                 status_code = message["status"]
             await send(message)
 
-        wrapper = self.get_app_wrapper(subdomain)
+        config = AppConfig.load_from_dir(app_dir)
+
         try:
-            return await wrapper.app(scope, receive, inner_send)
+            if config.app_type == AppType.STATIC:
+                wrapper = self.get_app_wrapper(subdomain)
+                return await wrapper.app(scope, receive, inner_send)
+
+            if config.app_type == AppType.PROCESS:
+                process = self.get_app_process(subdomain)
+                process.app()
+
+                url = f"http://localhost:{process.port}{request.url.path}"
+                if request.url.query:
+                    url += f"?{request.url.query}"
+
+                body = b""
+                while True:
+                    message = await receive()
+                    if message["type"] == "http.request":
+                        body += message.get("body", b"")
+                        if not message.get("more_body", False):
+                            break
+
+                retry = Retry(
+                    total=10,
+                    backoff_factor=0.5,
+                )  # TODO (sofa): decrease total retries once cold start issue is fixed
+                transport = RetryTransport(retry=retry)
+
+                async with httpx.AsyncClient(transport=transport) as client:
+                    headers = [(k, v) for k, v in request.headers.raw if k != b"host"]
+                    req = client.build_request(request.method, url, headers=headers, content=body)
+
+                    proxy_response = await client.send(req)
+
+                    response = Response(
+                        content=proxy_response.content,
+                        status_code=proxy_response.status_code,
+                        headers=proxy_response.headers,
+                    )
+                    return await response(scope, receive, inner_send)
+
         except Exception as exc:
             if isinstance(exc, HTTPException):
                 status_code = exc.status_code

@@ -21,8 +21,7 @@ export default defineConfig({
       {
         text: "Concepts",
         items: [
-          { text: "ASGI Apps", link: "/content/concepts/asgi" },
-          { text: "WSGI Apps", link: "/content/concepts/wsgi" },
+          { text: "Process Apps", link: "/content/concepts/process" },
           { text: "Static Apps", link: "/content/concepts/static" },
           { text: "Live Reloading", link: "/content/concepts/reload" },
           { text: "Virtual Environments", link: "/content/concepts/venv" },
@@ -41,7 +40,7 @@ export default defineConfig({
       {
         text: "Reference",
         items: [
-          { text: "App Config", link: "/content/reference/config" },
+          { text: "App Config", link: "/content/reference/app-config" },
           { text: "CLI", link: "/content/reference/cli" },
         ],
       },

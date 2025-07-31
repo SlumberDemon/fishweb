@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Fishweb"
   text: "Your personal web app manager"
-  tagline: Effortless multi-app ASGI middleware with advanced features
+  tagline: Effortless multi-app server with advanced features
   image:
     src: /icon.png
     alt: Fishweb
@@ -22,11 +22,11 @@ features:
     details: Turn your folders into apps and access them via subdomains
   - icon: 🐠
     title: Easy config
-    details: Configure your app however you want
-  - icon: 🐍
-    title: ASGI & WSGI compatible
-    details: Use your favourite Python ASGI & WSGI frameworks
-  - icon: 🌈
-    title: Developer dream
+    details: Configure all the important fishweb app options in yaml
+  - icon: 🍥
+    title: Framework and Language agnostic
+    details: Use your favourite language and frameworks
+  - icon: 🌀
+    title: Live reloading
     details: Test and prototype your apps faster than ever
 ---

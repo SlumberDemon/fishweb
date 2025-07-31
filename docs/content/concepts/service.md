@@ -19,3 +19,5 @@ RestartSec=10
 WantedBy=default.target
 ```
 :::
+
+## MacOS

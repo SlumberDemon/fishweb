@@ -7,7 +7,10 @@ The main file in a static app is `index.html`.
 If you want to handle 404 Not Found errors you can add a `404.html` file.
 Most of the heavy lifting is done by Starlette's [StaticFiles](https://www.starlette.io/staticfiles/) middleware.
 
-As Fishweb looks for ASGI apps by default, static apps need a config file with [`app_type`](/content/reference/config#app-type) set to `static`.
+As static apps are the default you can make a minimal setup that does not require a config file.
+
+> [!INFO]
+> Static apps **do not** support crons
 
 ::: code-group
 

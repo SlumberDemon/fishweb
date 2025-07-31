@@ -30,7 +30,7 @@ fishweb serve [flags]
                            [default: localhost]
 --port    -p      INTEGER  port number to listen on
                            [default: 8888]
---root    -r      PATH     root directory to serve apps from
+--dir    -d      PATH     root directory to serve apps from
                            [default: fishweb]
 --reload  -r               enable live reloading
 --help                     Show this message and exit.
@@ -48,7 +48,7 @@ fishweb logs [OPTIONS] [APP]
 
 ```
 --all   -a            show logs for all apps
---root  -r      PATH  root directory to search for apps
+--dir  -d      PATH  root directory to search for apps
                       [default: fishweb]
 --help                Show this message and exit.
 ```
