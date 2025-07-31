@@ -1,0 +1,3 @@
+type: process
+run: "uv run uvicorn main:app" # if this doesn't function see process docs
+port: 8000

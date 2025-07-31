@@ -1,0 +1,2 @@
+type: process
+run: "uv run uvicorn main:app --port $PORT" # if this doesn't function see process docs
