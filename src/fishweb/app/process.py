@@ -45,7 +45,6 @@ except ImportError:
     Observer = None
 
 
-# TODO(sofa): Add reload with watchdog
 class ProcessError(Exception):
     def __init__(self, path: Path, *args: object) -> None:
         super().__init__(*args)

@@ -23,7 +23,6 @@ def run(
     ],
     *,
     job: Annotated[str, Option("--job", "-j", help="name of the job to run")],
-    root_dir: Annotated[Path, Option("--root", "-r", help="root directory to search for apps")] = DEFAULT_ROOT_DIR,
     fishweb_url: Annotated[
         str,
         Option("--url", "-u", help="url fishweb is on"),
@@ -33,7 +32,7 @@ def run(
     Run a process cron job
     """
     # (TODO) add `crons` command to get details of cron jobs
-    # (TODO) sofa: add a sorta test mode to allow running crons without fishweb server
+    # (TODO) sofa: add a sorta test mode to allow running crons without fishweb server (use the code i made last week)
     # (TODO) sofa: handle static app not supported with dedicated error log
 
     retry = Retry(total=5, backoff_factor=0.5)
@@ -47,7 +46,7 @@ def run(
             status = 200
             if connection_test.status_code == status:
                 url = f"http://{app}.{fishweb_url}/_fishweb/crons"
-                client.post(url=url, json={"job": "hi"})
+                client.post(url=url, json={"job": job})
 
                 print(f"ran {app} cron {job}")
 
