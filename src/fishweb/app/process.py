@@ -14,6 +14,7 @@ import subprocess
 import sys
 import time
 
+from crontab import CronSlices, CronTab
 from dotenv import dotenv_values
 from loguru import logger as global_logger
 
@@ -209,6 +210,34 @@ class AppProcess:
         except Exception:
             self.logger.exception(f"failed to start process for '{self.name}'")
             raise
+
+    # TODO (sofa): test and implement in process
+    def _load_crons(self) -> None:
+        if self.config.crons:
+            self.logger.debug(f"processing crons for app '{self.name}'")
+            crontab = CronTab(tabfile=str(self.app_dir / "fishweb.cron"))
+            cron_ids = [cron.id for cron in self.config.crons]
+
+            for cron_item in crontab:
+                if cron_item.comment not in cron_ids:
+                    self.logger.debug(f"removing cron job '{self.name}/{cron_item.comment}'")
+                    crontab.remove(cron_item)
+
+            for cron in self.config.crons:
+                if not CronSlices.is_valid(cron.interval):
+                    self.logger.error(f"invalid interval format for cron '{self.name}/{cron.id}': {cron.interval}")
+                    continue
+                try:
+                    cron_item = next(crontab.find_comment(cron.id))
+                    self.logger.debug(f"updating cron job '{cron.id}'")
+                except StopIteration:
+                    self.logger.debug(f"creating cron job '{cron.id}'")
+                    cron_item = crontab.new(
+                        command=f"{sys.argv[0]} run {self.name} --job {cron.id}",
+                        comment=cron.id,
+                    )
+                cron_item.setall(cron.interval)
+            crontab.write()
 
     def _stop_process(self) -> None:
         if self._timer_task and not self._timer_task.done():
