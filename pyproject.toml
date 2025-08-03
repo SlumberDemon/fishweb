@@ -16,7 +16,7 @@ dependencies = [
     "httpx>=0.28.1",
     "httpx-retries>=0.4.0",
     "tomli>=2.2.1",
-    "crontab>=1.0.5",
+    "python-crontab>=3.3.0",
 ]
 classifiers = ["Programming Language :: Python"]
 dynamic = ["version"]

@@ -150,6 +150,7 @@ class AppProcess:
         )
         self._process = None
         self._timer_task = None
+        self._load_crons()
 
         if self.config.reload or reload:  # Maybe consider prioritizing reload flag to ensure it's disabled for crons
             if watchdog_available and Observer:
@@ -177,6 +178,7 @@ class AppProcess:
     def reload(self) -> None:
         self.logger.debug(f"reloading app '{self.name}' from {self.app_dir}")
         self.config = AppConfig.load_from_dir(self.app_dir)
+        self._load_crons()
 
         if self._process is None:
             return
@@ -211,10 +213,15 @@ class AppProcess:
             raise
 
     # TODO (sofa): test and implement in process
+    # TODO (sofa): actually make it start/run the cron too, cron.run()
     def _load_crons(self) -> None:
         if self.config.crons:
             self.logger.debug(f"processing crons for app '{self.name}'")
-            crontab = CronTab(tabfile=str(self.app_dir / "fishweb.cron"))
+            tabfile = self.app_dir / ".fishweb.cron"
+            tabfile.touch(exist_ok=True)
+
+            # (TODO): move to another location to not cause issues with git, etc?
+            crontab = CronTab(tabfile=str(tabfile))
             cron_ids = [cron.id for cron in self.config.crons]
 
             for cron_item in crontab:
